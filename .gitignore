@@ -1,0 +1,7 @@
+net_battle_server
+node_modules/
+*.log
+.DS_Store
+ezlibs-config.lua
+memory/*
+assets/avatars/*
