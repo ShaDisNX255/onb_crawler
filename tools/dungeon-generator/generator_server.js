@@ -8,8 +8,12 @@ const { spawn } = require('child_process')
 // CONFIG
 // ============================================================
 
-const POOL_SIZE_PER_BRANCH_COUNT = 5
-const STARTUP_MIN_PER_BRANCH_COUNT = 1
+const POOL_SIZE_PER_BRANCH_COUNT =
+    5
+
+const STARTUP_MIN_PER_BRANCH_COUNT =
+    1
+
 
 const BRANCH_COUNTS = [
     0,
@@ -19,7 +23,15 @@ const BRANCH_COUNTS = [
     4,
 ]
 
-const REFILL_CHECK_MS = 500
+
+const ROOM_TYPES = [
+    'regular',
+    'lobby',
+]
+
+
+const REFILL_CHECK_MS =
+    500
 
 
 // ============================================================
@@ -32,11 +44,13 @@ const ROOT_DIR =
         '../..'
     )
 
+
 const GENERATE_SCRIPT =
     path.join(
         __dirname,
         'generate_floor.js'
     )
+
 
 const POOL_DIR =
     path.join(
@@ -44,6 +58,7 @@ const POOL_DIR =
         'runtime',
         'dungeon_pool'
     )
+
 
 const READY_FILE =
     path.join(
@@ -56,175 +71,25 @@ const READY_FILE =
 // STATE
 // ============================================================
 
-let generationCounter = 0
-let shuttingDown = false
+let generationCounter =
+    0
+
+let shuttingDown =
+    false
 
 
 // ============================================================
-// HELPERS
+// GENERAL HELPERS
 // ============================================================
 
 function sleep(ms) {
     return new Promise(
         resolve =>
-            setTimeout(resolve, ms)
-    )
-}
-
-
-function getBranchDirectory(branchCount) {
-    return path.join(
-        POOL_DIR,
-        String(branchCount)
-    )
-}
-
-function getSlotPath(
-    branchCount,
-    slotNumber
-) {
-    return path.join(
-        getBranchDirectory(branchCount),
-        `slot_${String(slotNumber).padStart(2, '0')}.tmx`
-    )
-}
-
-
-function getTempSlotPath(
-    branchCount,
-    slotNumber
-) {
-    return path.join(
-        getBranchDirectory(branchCount),
-        `slot_${String(slotNumber).padStart(2, '0')}.tmp`
-    )
-}
-
-
-function findMissingSlot(branchCount) {
-    for (
-        let slot = 1;
-        slot <= POOL_SIZE_PER_BRANCH_COUNT;
-        slot++
-    ) {
-        if (
-            !fs.existsSync(
-                getSlotPath(
-                    branchCount,
-                    slot
-                )
+            setTimeout(
+                resolve,
+                ms
             )
-        ) {
-            return slot
-        }
-    }
-
-    return null
-}
-
-function ensureDirectories() {
-    fs.mkdirSync(
-        POOL_DIR,
-        {
-            recursive: true,
-        }
     )
-
-    for (
-        const branchCount
-        of BRANCH_COUNTS
-    ) {
-        fs.mkdirSync(
-            getBranchDirectory(
-                branchCount
-            ),
-            {
-                recursive: true,
-            }
-        )
-    }
-}
-
-
-function removeReadyMarker() {
-    try {
-        fs.unlinkSync(
-            READY_FILE
-        )
-    } catch (_) {
-        // File simply does not exist.
-    }
-}
-
-
-function cleanupIncompleteFiles() {
-    for (
-        const branchCount
-        of BRANCH_COUNTS
-    ) {
-        const directory =
-            getBranchDirectory(
-                branchCount
-            )
-
-        for (
-            const filename
-            of fs.readdirSync(directory)
-        ) {
-            if (
-                filename.endsWith(
-                    '.tmp'
-                )
-            ) {
-                const filepath =
-                    path.join(
-                        directory,
-                        filename
-                    )
-
-                console.log(
-                    '[dungeon-generator-server] removing incomplete file',
-                    filepath
-                )
-
-                try {
-                    fs.unlinkSync(
-                        filepath
-                    )
-                } catch (error) {
-                    console.error(
-                        '[dungeon-generator-server] failed removing incomplete file:',
-                        error
-                    )
-                }
-            }
-        }
-    }
-}
-
-
-function listReadyLayouts(
-    branchCount
-) {
-    const ready = []
-
-    for (
-        let slot = 1;
-        slot <= POOL_SIZE_PER_BRANCH_COUNT;
-        slot++
-    ) {
-        const filepath =
-            getSlotPath(
-                branchCount,
-                slot
-            )
-
-        if (fs.existsSync(filepath)) {
-            ready.push(filepath)
-        }
-    }
-
-    return ready
 }
 
 
@@ -244,10 +109,263 @@ function createLayoutId() {
 
 
 // ============================================================
-// GENERATION
+// POOL PATH HELPERS
+// ============================================================
+
+function getBranchDirectory(
+    roomType,
+    branchCount
+) {
+    return path.join(
+        POOL_DIR,
+        roomType,
+        String(branchCount)
+    )
+}
+
+
+function getSlotPath(
+    roomType,
+    branchCount,
+    slotNumber
+) {
+    return path.join(
+        getBranchDirectory(
+            roomType,
+            branchCount
+        ),
+        `slot_${String(slotNumber).padStart(2, '0')}.tmx`
+    )
+}
+
+
+function getTempSlotPath(
+    roomType,
+    branchCount,
+    slotNumber
+) {
+    return path.join(
+        getBranchDirectory(
+            roomType,
+            branchCount
+        ),
+        `slot_${String(slotNumber).padStart(2, '0')}.tmp`
+    )
+}
+
+
+// ============================================================
+// DIRECTORY SETUP
+// ============================================================
+
+function ensureDirectories() {
+    fs.mkdirSync(
+        POOL_DIR,
+        {
+            recursive: true,
+        }
+    )
+
+
+    for (
+        const roomType
+        of ROOM_TYPES
+    ) {
+        for (
+            const branchCount
+            of BRANCH_COUNTS
+        ) {
+            fs.mkdirSync(
+                getBranchDirectory(
+                    roomType,
+                    branchCount
+                ),
+                {
+                    recursive: true,
+                }
+            )
+        }
+    }
+}
+
+
+// ============================================================
+// READY MARKER
+// ============================================================
+
+function removeReadyMarker() {
+    try {
+        fs.unlinkSync(
+            READY_FILE
+        )
+    } catch (_) {
+        // It simply did not exist.
+    }
+}
+
+
+function writeReadyMarker() {
+    fs.writeFileSync(
+        READY_FILE,
+        'ready\n'
+    )
+
+    console.log('')
+
+    console.log(
+        '[dungeon-generator-server] ============================='
+    )
+
+    console.log(
+        '[dungeon-generator-server] INITIAL POOL READY'
+    )
+
+    console.log(
+        '[dungeon-generator-server] ============================='
+    )
+
+    console.log('')
+}
+
+
+// ============================================================
+// POOL INSPECTION
+// ============================================================
+
+function listReadyLayouts(
+    roomType,
+    branchCount
+) {
+    const ready = []
+
+    for (
+        let slot = 1;
+        slot <=
+            POOL_SIZE_PER_BRANCH_COUNT;
+        slot++
+    ) {
+        const filepath =
+            getSlotPath(
+                roomType,
+                branchCount,
+                slot
+            )
+
+        if (
+            fs.existsSync(
+                filepath
+            )
+        ) {
+            ready.push(
+                filepath
+            )
+        }
+    }
+
+    return ready
+}
+
+
+function findMissingSlot(
+    roomType,
+    branchCount
+) {
+    for (
+        let slot = 1;
+        slot <=
+            POOL_SIZE_PER_BRANCH_COUNT;
+        slot++
+    ) {
+        const filepath =
+            getSlotPath(
+                roomType,
+                branchCount,
+                slot
+            )
+
+        if (
+            !fs.existsSync(
+                filepath
+            )
+        ) {
+            return slot
+        }
+    }
+
+    return null
+}
+
+
+// ============================================================
+// CLEANUP INCOMPLETE FILES
+// ============================================================
+
+function cleanupIncompleteFiles() {
+    for (
+        const roomType
+        of ROOM_TYPES
+    ) {
+        for (
+            const branchCount
+            of BRANCH_COUNTS
+        ) {
+            const directory =
+                getBranchDirectory(
+                    roomType,
+                    branchCount
+                )
+
+
+            for (
+                const filename
+                of fs.readdirSync(
+                    directory
+                )
+            ) {
+                if (
+                    !filename.endsWith(
+                        '.tmp'
+                    )
+                ) {
+                    continue
+                }
+
+
+                const filepath =
+                    path.join(
+                        directory,
+                        filename
+                    )
+
+
+                console.log(
+                    '[dungeon-generator-server] removing incomplete file',
+                    filepath
+                )
+
+
+                try {
+                    fs.unlinkSync(
+                        filepath
+                    )
+                } catch (error) {
+                    console.error(
+                        '[dungeon-generator-server] failed removing incomplete file:',
+                        error
+                    )
+                }
+            }
+        }
+    }
+}
+
+
+// ============================================================
+// GENERATION PROCESS
 // ============================================================
 
 function runGenerator(
+    roomType,
     branchCount,
     tempPath
 ) {
@@ -256,17 +374,23 @@ function runGenerator(
             const layoutId =
                 createLayoutId()
 
+
             const areaId =
                 'pool_' +
+                roomType +
+                '_' +
                 branchCount +
                 '_' +
                 layoutId
 
+
             const roomId =
                 generationCounter
 
+
             console.log(
                 '[dungeon-generator-server] generating',
+                roomType,
                 branchCount +
                 '-branch layout',
                 areaId
@@ -278,15 +402,19 @@ function runGenerator(
 
                 areaId,
 
-                // Cached layouts do not belong to an actual run yet.
+                // Cached layouts do not belong
+                // to a real dungeon run yet.
                 'pool',
 
                 String(roomId),
 
-                // Dungeon depth is assigned later by Lua.
+                // Real dungeon depth is assigned
+                // later by Lua.
                 '0',
 
                 String(branchCount),
+
+                roomType,
 
                 tempPath,
             ]
@@ -309,7 +437,9 @@ function runGenerator(
             child.on(
                 'error',
                 error => {
-                    reject(error)
+                    reject(
+                        error
+                    )
                 }
             )
 
@@ -317,7 +447,9 @@ function runGenerator(
             child.on(
                 'exit',
                 code => {
-                    if (code === 0) {
+                    if (
+                        code === 0
+                    ) {
                         resolve()
                     } else {
                         reject(
@@ -334,42 +466,63 @@ function runGenerator(
 }
 
 
+// ============================================================
+// GENERATE ONE SLOT
+// ============================================================
+
 async function generateOneLayout(
+    roomType,
     branchCount,
     slotNumber
 ) {
     const tempPath =
         getTempSlotPath(
+            roomType,
             branchCount,
             slotNumber
         )
+
 
     const finalPath =
         getSlotPath(
+            roomType,
             branchCount,
             slotNumber
         )
 
+
     try {
-        fs.unlinkSync(tempPath)
+        fs.unlinkSync(
+            tempPath
+        )
     } catch (_) {
     }
 
+
     try {
         await runGenerator(
+            roomType,
             branchCount,
             tempPath
         )
 
+
+        // Atomic rename.
+        //
+        // Lua never sees a .tmp file,
+        // so it cannot claim a map while
+        // the generator is still writing it.
         fs.renameSync(
             tempPath,
             finalPath
         )
 
+
         console.log(
             '[dungeon-generator-server] ready:',
             finalPath
         )
+
 
         return true
     } catch (error) {
@@ -378,10 +531,14 @@ async function generateOneLayout(
             error
         )
 
+
         try {
-            fs.unlinkSync(tempPath)
+            fs.unlinkSync(
+                tempPath
+            )
         } catch (_) {
         }
+
 
         return false
     }
@@ -389,35 +546,50 @@ async function generateOneLayout(
 
 
 // ============================================================
-// POOL MANAGEMENT
+// REFILL ONE POOL
 // ============================================================
 
 async function refillPool(
+    roomType,
     branchCount,
     targetCount =
         POOL_SIZE_PER_BRANCH_COUNT
 ) {
-    while (!shuttingDown) {
+    while (
+        !shuttingDown
+    ) {
         const readyCount =
             listReadyLayouts(
+                roomType,
                 branchCount
             ).length
 
-        if (readyCount >= targetCount) {
+
+        if (
+            readyCount >=
+            targetCount
+        ) {
             return
         }
+
 
         const missingSlot =
             findMissingSlot(
+                roomType,
                 branchCount
             )
 
-        if (missingSlot === null) {
+
+        if (
+            missingSlot === null
+        ) {
             return
         }
 
+
         console.log(
             '[dungeon-generator-server] pool',
+            roomType,
             branchCount,
             'has',
             readyCount,
@@ -427,78 +599,92 @@ async function refillPool(
             missingSlot
         )
 
+
         const success =
             await generateOneLayout(
+                roomType,
                 branchCount,
                 missingSlot
             )
 
-        if (!success) {
-            await sleep(1000)
+
+        if (
+            !success
+        ) {
+            await sleep(
+                1000
+            )
         }
     }
 }
 
+
+// ============================================================
+// REFILL ALL POOLS
+// ============================================================
 
 async function refillAllPools(
     targetCount =
         POOL_SIZE_PER_BRANCH_COUNT
 ) {
     for (
-        const branchCount
-        of BRANCH_COUNTS
+        const roomType
+        of ROOM_TYPES
     ) {
-        if (shuttingDown) {
-            return
-        }
+        for (
+            const branchCount
+            of BRANCH_COUNTS
+        ) {
+            if (
+                shuttingDown
+            ) {
+                return
+            }
 
-        await refillPool(
-            branchCount,
-            targetCount
-        )
+
+            await refillPool(
+                roomType,
+                branchCount,
+                targetCount
+            )
+        }
     }
 }
 
+
+// ============================================================
+// STARTUP READINESS
+// ============================================================
 
 function allPoolsReady(
     minimumCount =
         STARTUP_MIN_PER_BRANCH_COUNT
 ) {
     for (
-        const branchCount
-        of BRANCH_COUNTS
+        const roomType
+        of ROOM_TYPES
     ) {
-        if (
-            listReadyLayouts(
-                branchCount
-            ).length <
-            minimumCount
+        for (
+            const branchCount
+            of BRANCH_COUNTS
         ) {
-            return false
+            const readyCount =
+                listReadyLayouts(
+                    roomType,
+                    branchCount
+                ).length
+
+
+            if (
+                readyCount <
+                minimumCount
+            ) {
+                return false
+            }
         }
     }
 
     return true
-}
-
-
-function writeReadyMarker() {
-    fs.writeFileSync(
-        READY_FILE,
-        'ready\n'
-    )
-
-    console.log('')
-    console.log(
-        '[dungeon-generator-server] ============================='
-    )
-    console.log(
-        '[dungeon-generator-server] INITIAL POOL READY'
-    )
-    console.log(
-        '[dungeon-generator-server] ============================='
-    )
-    console.log('')
 }
 
 
@@ -507,15 +693,20 @@ function writeReadyMarker() {
 // ============================================================
 
 function shutdown() {
-    if (shuttingDown) {
+    if (
+        shuttingDown
+    ) {
         return
     }
 
-    shuttingDown = true
+    shuttingDown =
+        true
+
 
     console.log(
         '[dungeon-generator-server] shutting down'
     )
+
 
     removeReadyMarker()
 }
@@ -525,6 +716,7 @@ process.on(
     'SIGINT',
     shutdown
 )
+
 
 process.on(
     'SIGTERM',
@@ -540,6 +732,7 @@ async function main() {
     console.log(
         '[dungeon-generator-server] starting'
     )
+
 
     console.log(
         '[dungeon-generator-server] pool directory:',
@@ -562,11 +755,13 @@ async function main() {
         '[dungeon-generator-server] preparing initial layout pool'
     )
 
-    // Only require one ready layout of each type before
-    // allowing ONB to start.
+
+    // Only one layout of every room-type/branch-count
+    // combination is required before ONB starts.
     await refillAllPools(
         STARTUP_MIN_PER_BRANCH_COUNT
     )
+
 
     if (
         !shuttingDown &&
@@ -582,7 +777,9 @@ async function main() {
     // Permanent refill loop
     // --------------------------------------------------------
 
-    while (!shuttingDown) {
+    while (
+        !shuttingDown
+    ) {
         await refillAllPools()
 
         await sleep(
@@ -601,6 +798,7 @@ main().catch(
             '[dungeon-generator-server] fatal error:',
             error
         )
+
 
         removeReadyMarker()
 

@@ -198,6 +198,64 @@ class TagBoardFeature extends Feature {
     }
 }
 
+class DungeonNPCFeature extends Feature {
+    static tsxPath =
+        `../assets/shared/objects/placeholder_npc.tsx`
+
+    static tsxTileCount = 1
+
+    constructor(
+        x,
+        y,
+        z,
+        feature,
+        properties
+    ) {
+        super(
+            x,
+            y,
+            z,
+            properties
+        )
+
+        this.type = 'NPC'
+
+        this.y_spawn_offset = 16
+        this.x_spawn_offset = 16
+
+        this.width = 16
+        this.height = 32
+
+        const newProperties = {
+            'Asset Name':
+                feature.asset_name ||
+                'normal-navi-bn4_green',
+
+            'Direction':
+                this.properties.Direction ||
+                'Down',
+
+            'Dialogue Type':
+                feature.dialogue_type ||
+                'first',
+
+            'Text 1':
+                feature.text ||
+                'Hello there.',
+        }
+
+        if (feature.event_name) {
+            newProperties['Event Name'] =
+                feature.event_name
+        }
+
+        Object.assign(
+            this.properties,
+            newProperties
+        )
+    }
+}
+
 class ImageFeature extends Feature {
     static tsxPath = `../assets/shared/objects/wall_feature.tsx`
     static tsxTileCount = 2
@@ -236,6 +294,11 @@ let featureCategories = {
             scrapedName: 'links',
             extraRequirements: 0,
             className: LinkFeature,
+        },
+        dungeon_npcs: {
+            scrapedName: 'dungeon_npcs',
+            extraRequirements: 0,
+            className: DungeonNPCFeature,
         },
         home_warps: {
             scrapedName: 'home_warps',
@@ -287,4 +350,5 @@ module.exports = {
     PageTagFeature,
     TagBoardFeature,
     NextFloorFeature,
+    DungeonNPCFeature,
 }

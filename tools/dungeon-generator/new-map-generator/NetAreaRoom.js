@@ -20,6 +20,7 @@ class NetAreaRoom {
             tag_boards: {},
             images: {},
             home_warps: {},
+            dungeon_npcs: {},
         }
         this.nextGroundFeatureIndex = 0
         this.nextWallFeatureIndex = 0

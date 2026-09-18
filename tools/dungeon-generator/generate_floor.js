@@ -7,6 +7,86 @@ const TiledTMXExporter =
     require('./map-exporter/TiledTMXExporter')
 
 
+// ============================================================
+// ROOM TYPE CONFIG
+// ============================================================
+
+const ROOM_TYPE_REGULAR =
+    'regular'
+
+const ROOM_TYPE_LOBBY =
+    'lobby'
+
+
+// ============================================================
+// LOBBY VISUALS
+// ============================================================
+
+const LOBBY_BACKGROUND_ANIMATION =
+    '/server/assets/backgrounds/SkyHP.animation'
+
+const LOBBY_BACKGROUND_TEXTURE =
+    '/server/assets/backgrounds/SkyHP.png'
+
+const LOBBY_BACKGROUND_VEL_X =
+    0.115
+
+const LOBBY_BACKGROUND_VEL_Y =
+    0.065
+
+
+// ============================================================
+// LOBBY MUSIC
+// ============================================================
+//
+// Change this path whenever you choose your actual lobby song.
+//
+// Example:
+// const LOBBY_SONG =
+//     '/server/assets/music/my_lobby_song.ogg'
+//
+// For now this expects:
+// assets/lobby.ogg
+//
+
+const LOBBY_SONG =
+    '/server/assets/lobby.ogg'
+
+
+// ============================================================
+// GENERATED NPC CONFIG
+// ============================================================
+
+const ATMOSPHERIC_NPC_ASSETS = [
+    'normal-navi-bn4_red',
+    'normal-navi-bn4_green',
+    'normal-navi-bn4_brown',
+    'male-navi-exe6_teal',
+    'female-navi-exe6_pink',
+    'female-navi-exe6_yellow',
+    'official-navi-exe4_orange',
+]
+
+
+const REGULAR_NPC_LINES = [
+    'The Net feels different every time I come through here.',
+    'You never know what you will find down the next path.',
+    'Be careful. There is no telling what is waiting ahead.',
+    'I have been wandering around here for a while.',
+]
+
+
+const LOBBY_NPC_LINES = [
+    'Take a moment. It is safe here.',
+    'Nice place to catch your breath, huh?',
+    'You should rest before heading back out there.',
+]
+
+
+// ============================================================
+// GENERAL HELPERS
+// ============================================================
+
 function randomInt(min, max) {
     return Math.floor(
         Math.random() * (max - min + 1)
@@ -14,7 +94,50 @@ function randomInt(min, max) {
 }
 
 
-function createDungeonNode(depth, maxDepth) {
+function randomChoice(array) {
+    return array[
+        Math.floor(
+            Math.random() *
+            array.length
+        )
+    ]
+}
+
+
+function shuffle(array) {
+    for (
+        let i = array.length - 1;
+        i > 0;
+        i--
+    ) {
+        const j =
+            Math.floor(
+                Math.random() *
+                (i + 1)
+            )
+
+        const temp =
+            array[i]
+
+        array[i] =
+            array[j]
+
+        array[j] =
+            temp
+    }
+
+    return array
+}
+
+
+// ============================================================
+// INTERNAL MAP TREE GENERATION
+// ============================================================
+
+function createDungeonNode(
+    depth,
+    maxDepth
+) {
     const node = {
         features: {
             children: [],
@@ -27,15 +150,25 @@ function createDungeonNode(depth, maxDepth) {
 
     let childCount
 
-    // The first internal room always branches so the generated
-    // map has some structure to explore.
     if (depth === 0) {
-        childCount = randomInt(2, 3)
+        childCount =
+            randomInt(
+                2,
+                3
+            )
     } else {
-        childCount = randomInt(0, 2)
+        childCount =
+            randomInt(
+                0,
+                2
+            )
     }
 
-    for (let i = 0; i < childCount; i++) {
+    for (
+        let i = 0;
+        i < childCount;
+        i++
+    ) {
         node.features.children.push(
             createDungeonNode(
                 depth + 1,
@@ -48,14 +181,21 @@ function createDungeonNode(depth, maxDepth) {
 }
 
 
-function assignParents(node, parent = null) {
-    node.parent = parent
+function assignParents(
+    node,
+    parent = null
+) {
+    node.parent =
+        parent
 
     for (
         const child
         of node.features?.children || []
     ) {
-        assignParents(child, node)
+        assignParents(
+            child,
+            node
+        )
     }
 }
 
@@ -77,7 +217,10 @@ function collectLeaves(
         return leaves
     }
 
-    for (const child of children) {
+    for (
+        const child
+        of children
+    ) {
         collectLeaves(
             child,
             depth + 1,
@@ -89,46 +232,95 @@ function collectLeaves(
 }
 
 
-function shuffle(array) {
+function collectNodes(
+    node,
+    nodes = []
+) {
+    nodes.push(
+        node
+    )
+
     for (
-        let i = array.length - 1;
-        i > 0;
-        i--
+        const child
+        of node.features?.children || []
     ) {
-        const j =
-            Math.floor(
-                Math.random() * (i + 1)
-            )
-
-        const temp = array[i]
-
-        array[i] = array[j]
-        array[j] = temp
+        collectNodes(
+            child,
+            nodes
+        )
     }
 
-    return array
+    return nodes
 }
 
+
+function createTreeWithEnoughLeaves(
+    requestedExitCount,
+    maxDepth,
+    maxAttempts = 100
+) {
+    for (
+        let attempt = 1;
+        attempt <= maxAttempts;
+        attempt++
+    ) {
+        const root =
+            createDungeonNode(
+                0,
+                maxDepth
+            )
+
+        assignParents(
+            root
+        )
+
+        const leaves =
+            collectLeaves(
+                root
+            )
+
+        if (
+            leaves.length >=
+            requestedExitCount
+        ) {
+            return root
+        }
+    }
+
+    throw new Error(
+        `Unable to generate a map with at least ${requestedExitCount} leaves after ${maxAttempts} attempts`
+    )
+}
+
+
+// ============================================================
+// BRANCH WARPS
+// ============================================================
 
 function addBranchWarps(
     root,
     requestedCount
 ) {
-    if (requestedCount <= 0) {
+    if (
+        requestedCount <= 0
+    ) {
         return 0
     }
 
     const leaves =
         shuffle(
-            collectLeaves(root)
+            collectLeaves(
+                root
+            )
         )
 
-    // Prefer terminal rooms farther away from the entrance.
+    // Prefer farther terminal rooms.
     //
-    // Because shuffle() happened first, leaves at the same depth
-    // still get randomized.
+    // shuffle() occurs first so leaves at the same depth
+    // are still randomized.
     leaves.sort(
-        (a, b) => b.depth - a.depth
+        (a, b) =>
+            b.depth - a.depth
     )
 
     const actualCount =
@@ -160,39 +352,147 @@ function addBranchWarps(
     return actualCount
 }
 
-function createTreeWithEnoughLeaves(
-    requestedExitCount,
-    maxDepth,
-    maxAttempts = 100
+
+// ============================================================
+// NPC GENERATION
+// ============================================================
+
+function addNpcToNode(
+    node,
+    npc
 ) {
-    for (
-        let attempt = 1;
-        attempt <= maxAttempts;
-        attempt++
-    ) {
-        const root =
-            createDungeonNode(
-                0,
-                maxDepth
-            )
-
-        assignParents(root)
-
-        const leaves =
-            collectLeaves(root)
-
-        if (
-            leaves.length >=
-            requestedExitCount
-        ) {
-            return root
-        }
+    if (!node.features) {
+        node.features = {}
     }
 
-    throw new Error(
-        `Unable to generate a map with at least ${requestedExitCount} leaves after ${maxAttempts} attempts`
+    if (
+        !node.features.dungeon_npcs
+    ) {
+        node.features.dungeon_npcs =
+            []
+    }
+
+    node.features.dungeon_npcs.push(
+        npc
     )
 }
+
+
+function addGeneratedNpcs(
+    root,
+    roomType
+) {
+    const nodes =
+        shuffle(
+            collectNodes(
+                root
+            )
+        )
+
+    if (
+        nodes.length === 0
+    ) {
+        return
+    }
+
+
+    // --------------------------------------------------------
+    // LOBBY
+    // --------------------------------------------------------
+
+    if (
+        roomType ===
+        ROOM_TYPE_LOBBY
+    ) {
+        // Every lobby gets one healer.
+        addNpcToNode(
+            nodes[0],
+            {
+                asset_name:
+                    'female-navi-exe6_yellow',
+
+                dialogue_type:
+                    'first',
+
+                event_name:
+                    'dungeon_heal',
+
+                text:
+                    'You have had a tough journey, traveler. Rest here.',
+            }
+        )
+
+
+        // 50% chance of an additional atmospheric NPC.
+        if (
+            nodes.length > 1 &&
+            Math.random() < 0.5
+        ) {
+            addNpcToNode(
+                nodes[1],
+                {
+                    asset_name:
+                        randomChoice(
+                            ATMOSPHERIC_NPC_ASSETS
+                        ),
+
+                    dialogue_type:
+                        'first',
+
+                    text:
+                        randomChoice(
+                            LOBBY_NPC_LINES
+                        ),
+                }
+            )
+        }
+
+        return
+    }
+
+
+    // --------------------------------------------------------
+    // REGULAR DUNGEON MAP
+    // --------------------------------------------------------
+
+    const npcCount =
+        randomInt(
+            0,
+            Math.min(
+                2,
+                nodes.length
+            )
+        )
+
+    for (
+        let i = 0;
+        i < npcCount;
+        i++
+    ) {
+        addNpcToNode(
+            nodes[i],
+            {
+                asset_name:
+                    randomChoice(
+                        ATMOSPHERIC_NPC_ASSETS
+                    ),
+
+                dialogue_type:
+                    'first',
+
+                text:
+                    randomChoice(
+                        REGULAR_NPC_LINES
+                    ),
+            }
+        )
+    }
+}
+
+
+// ============================================================
+// MAIN
+// ============================================================
 
 async function main() {
     const [
@@ -201,26 +501,37 @@ async function main() {
         roomArg,
         depthArg,
         exitCountArg,
+        roomTypeArg,
         outputArg,
-    ] = process.argv.slice(2)
+    ] =
+        process.argv.slice(2)
 
 
-    // ----------------------------------------------------------
-    // Validate arguments
-    // ----------------------------------------------------------
+    // --------------------------------------------------------
+    // Validate area ID
+    // --------------------------------------------------------
 
     if (
         !areaId ||
-        !/^[A-Za-z0-9_-]+$/.test(areaId)
+        !/^[A-Za-z0-9_-]+$/.test(
+            areaId
+        )
     ) {
         throw new Error(
             'Invalid or missing area ID'
         )
     }
 
+
+    // --------------------------------------------------------
+    // Validate run ID
+    // --------------------------------------------------------
+
     if (
         !runId ||
-        !/^[A-Za-z0-9_-]+$/.test(runId)
+        !/^[A-Za-z0-9_-]+$/.test(
+            runId
+        )
     ) {
         throw new Error(
             'Invalid or missing dungeon run ID'
@@ -228,11 +539,19 @@ async function main() {
     }
 
 
+    // --------------------------------------------------------
+    // Validate room ID
+    // --------------------------------------------------------
+
     const roomId =
-        Number(roomArg)
+        Number(
+            roomArg
+        )
 
     if (
-        !Number.isInteger(roomId) ||
+        !Number.isInteger(
+            roomId
+        ) ||
         roomId < 1
     ) {
         throw new Error(
@@ -241,11 +560,19 @@ async function main() {
     }
 
 
+    // --------------------------------------------------------
+    // Validate depth
+    // --------------------------------------------------------
+
     const dungeonDepth =
-        Number(depthArg)
+        Number(
+            depthArg
+        )
 
     if (
-        !Number.isInteger(dungeonDepth) ||
+        !Number.isInteger(
+            dungeonDepth
+        ) ||
         dungeonDepth < 0
     ) {
         throw new Error(
@@ -254,8 +581,14 @@ async function main() {
     }
 
 
+    // --------------------------------------------------------
+    // Validate exit count
+    // --------------------------------------------------------
+
     const requestedExitCount =
-        Number(exitCountArg)
+        Number(
+            exitCountArg
+        )
 
     if (
         !Number.isInteger(
@@ -265,6 +598,27 @@ async function main() {
     ) {
         throw new Error(
             'Invalid branch count'
+        )
+    }
+
+
+    // --------------------------------------------------------
+    // Validate room type
+    // --------------------------------------------------------
+
+    const roomType =
+        roomTypeArg ||
+        ROOM_TYPE_REGULAR
+
+    if (
+        roomType !==
+            ROOM_TYPE_REGULAR &&
+        roomType !==
+            ROOM_TYPE_LOBBY
+    ) {
+        throw new Error(
+            'Invalid dungeon room type: ' +
+            roomType
         )
     }
 
@@ -279,14 +633,16 @@ async function main() {
         roomId,
         'depth:',
         dungeonDepth,
+        'type:',
+        roomType,
         'requested exits:',
         requestedExitCount
     )
 
 
-    // ----------------------------------------------------------
-    // Build this individual map
-    // ----------------------------------------------------------
+    // ========================================================
+    // BUILD MAP
+    // ========================================================
 
     const root =
         createTreeWithEnoughLeaves(
@@ -294,11 +650,13 @@ async function main() {
             3
         )
 
+
     const actualExitCount =
         addBranchWarps(
             root,
             requestedExitCount
         )
+
 
     if (
         actualExitCount !==
@@ -309,18 +667,25 @@ async function main() {
         )
     }
 
+
     console.log(
         '[dungeon-generator] actual exits:',
         actualExitCount
     )
 
 
+    addGeneratedNpcs(
+        root,
+        roomType
+    )
+
+
     const generator =
         new NetAreaGenerator()
 
-    // This controls complexity inside this individual TMX.
-    // It is separate from the dungeon network depth.
-    generator.maximumNodeDepth = 3
+    generator.maximumNodeDepth =
+        3
+
 
     await generator.generateNetArea(
         root,
@@ -328,58 +693,132 @@ async function main() {
     )
 
 
-    // ----------------------------------------------------------
-    // Export
-    // ----------------------------------------------------------
+    // ========================================================
+    // OUTPUT PATH
+    // ========================================================
 
     const outputPath =
         outputArg
-            ? path.resolve(outputArg)
+            ? path.resolve(
+                outputArg
+            )
             : path.resolve(
                 __dirname,
                 `../../areas/${areaId}.tmx`
             )
 
+
+    // ========================================================
+    // MAP PROPERTIES
+    // ========================================================
+
+    const exportProperties = {
+        Name:
+            roomType ===
+            ROOM_TYPE_LOBBY
+                ? `Rest Area ${roomId}`
+                : `Dungeon Area ${roomId}`,
+
+        dungeon_run_id:
+            runId,
+
+        dungeon_room_id:
+            roomId,
+
+        dungeon_depth:
+            dungeonDepth,
+
+        dungeon_exit_count:
+            actualExitCount,
+
+        dungeon_room_type:
+            roomType,
+    }
+
+
+    // --------------------------------------------------------
+    // Lobby appearance/music
+    // --------------------------------------------------------
+
+    if (
+        roomType ===
+        ROOM_TYPE_LOBBY
+    ) {
+        Object.assign(
+            exportProperties,
+            {
+                Background:
+                    'Custom',
+
+                'Background Animation':
+                    LOBBY_BACKGROUND_ANIMATION,
+
+                'Background Texture':
+                    LOBBY_BACKGROUND_TEXTURE,
+
+                'Background Vel X':
+                    LOBBY_BACKGROUND_VEL_X,
+
+                'Background Vel Y':
+                    LOBBY_BACKGROUND_VEL_Y,
+
+                Song:
+                    LOBBY_SONG,
+            }
+        )
+    }
+
+
+    // --------------------------------------------------------
+    // Regular dungeon appearance
+    // --------------------------------------------------------
+    //
+    // We intentionally DO NOT specify Song here.
+    //
+    // TiledTMXExporter currently defaults to:
+    //
+    // resources/loops/undernet.ogg
+    //
+    // so regular dungeon music remains exactly as before.
+    // --------------------------------------------------------
+
+    else {
+        Object.assign(
+            exportProperties,
+            {
+                Background:
+                    'Custom',
+
+                'Background Animation':
+                    '/server/assets/backgrounds/02-nettonohp.animation',
+
+                'Background Texture':
+                    '/server/assets/backgrounds/02-nettonohp.png',
+
+                'Background Vel X':
+                    0.115,
+
+                'Background Vel Y':
+                    0.065,
+            }
+        )
+    }
+
+
+    // ========================================================
+    // EXPORT
+    // ========================================================
+
     const exporter =
         new TiledTMXExporter()
 
+
     await exporter.ExportTMX(
         generator,
-        {
-            Name:
-                `Dungeon Room ${roomId}`,
-
-            dungeon_run_id:
-                runId,
-
-            dungeon_room_id:
-                roomId,
-
-            dungeon_depth:
-                dungeonDepth,
-
-            dungeon_exit_count:
-                actualExitCount,
-
-            // For now every generated map uses the same
-            // background as default.tmx.
-            Background:
-                'Custom',
-
-            'Background Animation':
-                '/server/assets/backgrounds/02-nettonohp.animation',
-
-            'Background Texture':
-                '/server/assets/backgrounds/02-nettonohp.png',
-
-            'Background Vel X':
-                0.115,
-
-            'Background Vel Y':
-                0.065,
-        },
+        exportProperties,
         outputPath
     )
+
 
     console.log(
         '[dungeon-generator] wrote',
@@ -388,12 +827,16 @@ async function main() {
 }
 
 
-main().catch((error) => {
-    console.error(
-        '[dungeon-generator] generation failed'
-    )
+main().catch(
+    (error) => {
+        console.error(
+            '[dungeon-generator] generation failed'
+        )
 
-    console.error(error)
+        console.error(
+            error
+        )
 
-    process.exit(1)
-})
+        process.exit(1)
+    }
+)
