@@ -232,8 +232,9 @@ end
 -- ROOM GENERATION / CACHE CONSUMPTION
 -- ==============================================================
 
-local function generate_room(run_id, room_id, depth, room_type)
+local function generate_room(run_id, room_id, depth, room_type, route)
     room_type = room_type or "regular"
+    route = route or tostring(room_id)
 
     local area_id = make_room_area_id(run_id, room_id)
     local exit_count = 0
@@ -292,12 +293,14 @@ local function generate_room(run_id, room_id, depth, room_type)
     local display_name
 
     if room_type == "lobby" then
-        display_name = "Rest Area " .. tostring(room_id)
+        display_name = "Rest Area " .. route
     else
-        display_name = "Dungeon Area " .. tostring(room_id)
+        display_name = "Dungeon Area " .. route
     end
 
-    Net.set_area_custom_property(area_id, "Name", display_name)
+    Net.set_area_name(area_id, display_name)
+
+    Net.set_area_custom_property(area_id, "dungeon_route", route)
     Net.set_area_custom_property(area_id, "dungeon_run_id", run_id)
     Net.set_area_custom_property(area_id, "dungeon_room_id", tostring(room_id))
     Net.set_area_custom_property(area_id, "dungeon_depth", tostring(depth))
@@ -336,6 +339,7 @@ local function generate_room(run_id, room_id, depth, room_type)
         room_id = room_id,
         area_id = area_id,
         depth = depth,
+        route = route,
         room_type = room_type,
         exit_count = exit_count,
         children = {},
@@ -356,7 +360,8 @@ local function create_active_run()
         run_id,
         1,
         0,
-        "regular"
+        "regular",
+        "1"
     )
 
     if not root_room then
@@ -626,6 +631,11 @@ Net:on("custom_warp", function(event)
                 current_room
             )
 
+            local child_route =
+                (current_room.route or tostring(current_room.room_id)) ..
+                "-" ..
+                tostring(branch_id)
+
             print(
                 "[dungeon_warps] unexplored branch: room " ..
                 current_room_id ..
@@ -641,7 +651,8 @@ Net:on("custom_warp", function(event)
                 active_run.run_id,
                 child_room_id,
                 child_depth,
-                child_room_type
+                child_room_type,
+                child_route
             )
 
             if not child_room then

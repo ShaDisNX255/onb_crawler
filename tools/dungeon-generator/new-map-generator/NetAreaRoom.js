@@ -1,13 +1,275 @@
-let { featureCategories } = require('./features.js')
-let GenerateForRequirements = require('./NetPrefabGenerator')
+const { featureCategories } = require('./features.js')
+const GenerateForRequirements = require('./NetPrefabGenerator')
+const Prefab = require('./Prefab.js')
+
+function createOpenLobbyPrefab(requiredGroundFeatures) {
+    const prefab = new Prefab()
+
+    const canvasSize = 21
+    const centralSize = 7
+    const satelliteSize = 4
+    const centralStart = 7
+    const centralEnd = centralStart + centralSize - 1
+
+    const matrix = Array.from(
+        { length: canvasSize },
+        () => Array(canvasSize).fill(0)
+    )
+
+    const featureSlots = []
+
+    function randomInt(min, max) {
+        return Math.floor(
+            Math.random() * (max - min + 1)
+        ) + min
+    }
+
+    function fillRect(startX, startY, width, height, tileId = 2) {
+        for (let y = startY; y < startY + height; y++) {
+            for (let x = startX; x < startX + width; x++) {
+                matrix[y][x] = tileId
+            }
+        }
+    }
+
+    function addFeatureSlot(x, y) {
+        if (
+            !featureSlots.some(
+                slot => slot.x === x && slot.y === y
+            )
+        ) {
+            featureSlots.push({ x, y })
+        }
+    }
+
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = randomInt(0, i)
+            const temp = array[i]
+            array[i] = array[j]
+            array[j] = temp
+        }
+
+        return array
+    }
+
+    // Smaller central plaza than the old 9x9 Rest Area.
+    fillRect(
+        centralStart,
+        centralStart,
+        centralSize,
+        centralSize
+    )
+
+    // Four useful positions in the central plaza.
+    addFeatureSlot(centralStart + 1, centralStart + 1)
+    addFeatureSlot(centralEnd - 1, centralStart + 1)
+    addFeatureSlot(centralStart + 1, centralEnd - 1)
+    addFeatureSlot(centralEnd - 1, centralEnd - 1)
+
+    const directions = shuffle([
+        'north',
+        'south',
+        'west',
+        'east',
+    ])
+
+    // Most Rest Areas get 3 satellite rooms.
+    // The rest get all 4.
+    const satelliteCount =
+        Math.random() < 0.5
+            ? 3
+            : 4
+
+    for (let i = 0; i < satelliteCount; i++) {
+        const direction = directions[i]
+        let roomX
+        let roomY
+
+        if (direction === 'north') {
+            roomX = randomInt(
+                centralStart,
+                centralEnd - satelliteSize + 1
+            )
+            roomY = 1
+
+            // Two-tile-wide, two-tile-long corridor.
+            fillRect(
+                roomX + 1,
+                roomY + satelliteSize,
+                2,
+                centralStart - (roomY + satelliteSize)
+            )
+        } else if (direction === 'south') {
+            roomX = randomInt(
+                centralStart,
+                centralEnd - satelliteSize + 1
+            )
+            roomY = centralEnd + 3
+
+            fillRect(
+                roomX + 1,
+                centralEnd + 1,
+                2,
+                roomY - centralEnd - 1
+            )
+        } else if (direction === 'west') {
+            roomX = 1
+            roomY = randomInt(
+                centralStart,
+                centralEnd - satelliteSize + 1
+            )
+
+            fillRect(
+                roomX + satelliteSize,
+                roomY + 1,
+                centralStart - (roomX + satelliteSize),
+                2
+            )
+        } else {
+            roomX = centralEnd + 3
+            roomY = randomInt(
+                centralStart,
+                centralEnd - satelliteSize + 1
+            )
+
+            fillRect(
+                centralEnd + 1,
+                roomY + 1,
+                roomX - centralEnd - 1,
+                2
+            )
+        }
+
+        // Occasionally use the alternate floor tile in a side room.
+        const satelliteTile =
+            Math.random() < 0.35
+                ? 3
+                : 2
+
+        fillRect(
+            roomX,
+            roomY,
+            satelliteSize,
+            satelliteSize,
+            satelliteTile
+        )
+
+        // Each small room can hold an NPC or warp.
+        addFeatureSlot(
+            roomX + randomInt(1, 2),
+            roomY + randomInt(1, 2)
+        )
+    }
+
+    // Future-proofing in case Rest Areas eventually need more
+    // NPCs/warps than the current setup.
+    if (featureSlots.length < requiredGroundFeatures) {
+        for (
+            let y = centralStart + 1;
+            y < centralEnd &&
+                featureSlots.length < requiredGroundFeatures;
+            y++
+        ) {
+            for (
+                let x = centralStart + 1;
+                x < centralEnd &&
+                    featureSlots.length < requiredGroundFeatures;
+                x++
+            ) {
+                addFeatureSlot(x, y)
+            }
+        }
+    }
+
+    // Randomize which features end up in which rooms.
+    shuffle(featureSlots)
+
+    prefab.AddMatrixLayer(matrix)
+
+    const middle =
+        centralStart +
+        Math.floor(centralSize / 2)
+
+    prefab.AddFeature(
+        'male_connectors',
+        centralStart - 1,
+        middle,
+        0,
+        {}
+    )
+    prefab.AddFeature(
+        'male_connectors',
+        centralEnd + 1,
+        middle,
+        0,
+        {}
+    )
+    prefab.AddFeature(
+        'male_connectors',
+        middle,
+        centralStart - 1,
+        0,
+        {}
+    )
+    prefab.AddFeature(
+        'male_connectors',
+        middle,
+        centralEnd + 1,
+        0,
+        {}
+    )
+
+    prefab.AddFeature(
+        'female_connectors',
+        centralStart,
+        middle,
+        0,
+        {}
+    )
+    prefab.AddFeature(
+        'female_connectors',
+        centralEnd,
+        middle,
+        0,
+        {}
+    )
+    prefab.AddFeature(
+        'female_connectors',
+        middle,
+        centralStart,
+        0,
+        {}
+    )
+    prefab.AddFeature(
+        'female_connectors',
+        middle,
+        centralEnd,
+        0,
+        {}
+    )
+
+    for (const slot of featureSlots) {
+        prefab.AddFeature(
+            'ground_features',
+            slot.x,
+            slot.y,
+            0,
+            {}
+        )
+    }
+
+    return prefab
+}
+
 class NetAreaRoom {
     constructor(node, netAreaGenerator) {
-        let defaultX = parseInt(netAreaGenerator.width / 2)
-        let defaultY = parseInt(netAreaGenerator.length / 2)
-        let defaultZ = 0
+        const defaultX = parseInt(netAreaGenerator.width / 2)
+        const defaultY = parseInt(netAreaGenerator.length / 2)
+
         this._x = defaultX
         this._y = defaultY
-        this._z = defaultZ
+        this._z = 0
         this.node = node
         this.node.room = this
         this.netAreaGenerator = netAreaGenerator
@@ -25,138 +287,194 @@ class NetAreaRoom {
         this.nextGroundFeatureIndex = 0
         this.nextWallFeatureIndex = 0
 
-        let { prefabRequirements, totalRequired } = this.determineFeatureRequirementsFromNode(this.node)
+        const { prefabRequirements, totalRequired } =
+            this.determineFeatureRequirementsFromNode(this.node)
+
         this.prefabRequirements = prefabRequirements
         this.totalRequired = totalRequired
 
-        //Set color of room based on the node's color, or on the parent node's
         this.color = this.node['background-color']
-        if (!this.color) {
-            if (this.node?.parent?.room?.color) {
-                this.color = this.node?.parent?.room?.color
-            }
+        if (!this.color && this.node?.parent?.room?.color) {
+            this.color = this.node.parent.room.color
         }
 
         this.prefab = this.pickSmallestPrefab(node)
         this.width = this.prefab.width
         this.length = this.prefab.length
         this.height = this.prefab.height
-        if(this.height > 0){
+
+        if (this.height > 0) {
             this.isStairs = true
         }
+
         this.widthRatio = this.width / this.length
         this.lengthRatio = this.length / this.width
+
         this.placeFeatures()
     }
+
     determineFeatureRequirementsFromNode(node) {
-        /*
-            Count how many features of each type we will need in the prefab
-            for all the features of this node to be placed on
-        */
-        let prefabRequirements = {}
-        let totalRequired = {
+        const prefabRequirements = {}
+        const totalRequired = {
             ground_features: 0,
             wall_features: 0,
-            back_links:0,
+            back_links: 0,
         }
 
-        for (let featureCategory in featureCategories) {
-            let category = featureCategories[featureCategory]
-            for (let featureName in category) {
-                let feature = category[featureName]
+        for (const featureCategory in featureCategories) {
+            const category = featureCategories[featureCategory]
+
+            for (const featureName in category) {
+                const feature = category[featureName]
                 let requiredCount = feature.extraRequirements
-                if (node && node?.features) {
-                    let nodeCollection = node?.features[feature.scrapedName]
+
+                if (node?.features) {
+                    const nodeCollection =
+                        node.features[feature.scrapedName]
+
                     if (nodeCollection) {
                         requiredCount += nodeCollection.length
                     }
+
                     totalRequired[featureCategory] += requiredCount
                     prefabRequirements[featureName] = requiredCount
                 }
             }
         }
-        return { prefabRequirements, totalRequired }
-    }
-    pickGroundPlacement(featureName) {
-        let positions = this.prefab.features.ground_features
-        let index = this.nextGroundFeatureIndex
 
-        if ((featureName === 'page_tags' || featureName === 'tag_boards') && index < positions.length) {
-            let swapIndex = this.netAreaGenerator.RNG.Integer(index, positions.length - 1)
-            let tmp = positions[index]
+        return {
+            prefabRequirements,
+            totalRequired,
+        }
+    }
+
+    pickGroundPlacement(featureName) {
+        const positions = this.prefab.features.ground_features
+        const index = this.nextGroundFeatureIndex
+
+        if (
+            (featureName === 'page_tags' ||
+                featureName === 'tag_boards') &&
+            index < positions.length
+        ) {
+            const swapIndex =
+                this.netAreaGenerator.RNG.Integer(
+                    index,
+                    positions.length - 1
+                )
+
+            const temp = positions[index]
             positions[index] = positions[swapIndex]
-            positions[swapIndex] = tmp
+            positions[swapIndex] = temp
         }
 
-        let position = positions[index]
+        const position = positions[index]
         this.nextGroundFeatureIndex++
         return position
     }
+
     placeFeatures() {
-        for (let category in featureCategories) {
-            //Loop through each feature category
-            if (category == 'unplaced') {
-                //Unplaced features have special logic for placement elsewhere
-                continue
-            }
-            if (this.prefab.features[category].length == 0) {
+        for (const category in featureCategories) {
+            if (category === 'unplaced') {
                 continue
             }
 
-            let featureTypes = featureCategories[category]
-            for (let featureName in featureTypes) {
-                //Loop through each feature subtype
-                let featureMapping = featureTypes[featureName]
-                //Skip if this node does not have any features of this type
-                if (!this.node?.features || !this.node.features[featureMapping.scrapedName]) {
+            if (this.prefab.features[category].length === 0) {
+                continue
+            }
+
+            const featureTypes = featureCategories[category]
+
+            for (const featureName in featureTypes) {
+                const featureMapping = featureTypes[featureName]
+
+                if (
+                    !this.node?.features ||
+                    !this.node.features[featureMapping.scrapedName]
+                ) {
                     continue
                 }
-                let nodeFeaturesOfType = this.node.features[featureMapping.scrapedName]
-                for (let n_featureKey in nodeFeaturesOfType) {
+
+                const nodeFeaturesOfType =
+                    this.node.features[featureMapping.scrapedName]
+
+                for (const featureKey in nodeFeaturesOfType) {
                     let newPlacementPosition
-                    if (category == 'ground_features') {
-                        newPlacementPosition = this.pickGroundPlacement(featureName)
+
+                    if (category === 'ground_features') {
+                        newPlacementPosition =
+                            this.pickGroundPlacement(featureName)
                     }
-                    if (category == 'wall_features') {
-                        newPlacementPosition = this.prefab.features[category][this.nextWallFeatureIndex]
+
+                    if (category === 'wall_features') {
+                        newPlacementPosition =
+                            this.prefab.features[category][
+                                this.nextWallFeatureIndex
+                            ]
                         this.nextWallFeatureIndex++
-                        //console.log('placing a wall feature on location',this.nextWallFeatureIndex,'/', this.prefab.features[category].length)
                     }
-                    let featureData = nodeFeaturesOfType[n_featureKey]
-                    let { x, y, z, properties } = newPlacementPosition
-                    let newFeature = new featureMapping.className(x, y, z, featureData, properties)
-                    this.features[featureName][newFeature.locationString] = newFeature
+
+                    const featureData =
+                        nodeFeaturesOfType[featureKey]
+
+                    const {
+                        x,
+                        y,
+                        z,
+                        properties,
+                    } = newPlacementPosition
+
+                    const newFeature =
+                        new featureMapping.className(
+                            x,
+                            y,
+                            z,
+                            featureData,
+                            properties
+                        )
+
+                    this.features[featureName][
+                        newFeature.locationString
+                    ] = newFeature
                 }
             }
         }
     }
+
     connectionsOnZ(targetZ) {
-        let connections = this.prefab.features.male_connectors.filter((connection) => connection.z === targetZ)
-        return connections
+        return this.prefab.features.male_connectors.filter(
+            connection => connection.z === targetZ
+        )
     }
+
     getHighestConnectorZ() {
         let highestLayer = 0
-        for (let connection of this.prefab.features.male_connectors) {
+
+        for (const connection of this.prefab.features.male_connectors) {
             if (connection.z > highestLayer) {
                 highestLayer = connection.z
-                
             }
         }
+
         return highestLayer
     }
+
     filterAllButSmallestPrefabs(prefabList) {
         let leastFeatures = Infinity
         let smallestPrefabs = []
-        for (let prefab of prefabList) {
+
+        for (const prefab of prefabList) {
             if (prefab.totalFeatures < leastFeatures) {
                 leastFeatures = prefab.totalFeatures
                 smallestPrefabs = [prefab]
-            } else if (prefab.totalFeatures == leastFeatures) {
+            } else if (prefab.totalFeatures === leastFeatures) {
                 smallestPrefabs.push(prefab)
             }
         }
+
         return smallestPrefabs
     }
+
     pickSmallestPrefab(node) {
         if (this.node.isFirstNode) {
             if (!this.node.features) {
@@ -174,24 +492,37 @@ class NetAreaRoom {
                 this.node.features.back_links = [{}]
             }
         }
-        let requiredground_features = this.totalRequired.ground_features
-        let requiredwall_features = this.totalRequired.wall_features
 
-        let requirements = {
-            ground_features: requiredground_features,
-            wall_features: requiredwall_features,
-            stairs:0
+        const requiredGroundFeatures =
+            this.totalRequired.ground_features
+
+        const requiredWallFeatures =
+            this.totalRequired.wall_features
+
+        if (node?.room_style === 'lobby') {
+            return createOpenLobbyPrefab(
+                requiredGroundFeatures
+            )
         }
 
-        if(requirements.ground_features == 0 && requirements.wall_features == 0){
-            const childCount = node?.features?.children?.length ?? 0
+        const requirements = {
+            ground_features: requiredGroundFeatures,
+            wall_features: requiredWallFeatures,
+            stairs: 0,
+        }
 
-            if(childCount > 0){
+        if (
+            requirements.ground_features === 0 &&
+            requirements.wall_features === 0
+        ) {
+            const childCount =
+                node?.features?.children?.length ?? 0
+
+            if (childCount > 0) {
                 requirements.stairs = 1
             }
         }
 
-        // Dungeon nodes without content should still become proper rooms.
         if (
             requirements.ground_features === 0 &&
             requirements.wall_features === 0 &&
@@ -200,41 +531,70 @@ class NetAreaRoom {
             requirements.ground_features = 1
         }
 
-        let prefab = GenerateForRequirements(requirements)
-        return prefab
+        return GenerateForRequirements(requirements)
     }
+
     set x(val) {
-        if (val > 0 && val + this.width < this.netAreaGenerator.width - 1) {
+        if (
+            val > 0 &&
+            val + this.width < this.netAreaGenerator.width - 1
+        ) {
             this._x = val
         }
     }
+
     set y(val) {
-        if (val > 0 && val + this.length < this.netAreaGenerator.length - 1) {
+        if (
+            val > 0 &&
+            val + this.length < this.netAreaGenerator.length - 1
+        ) {
             this._y = val
         }
     }
+
     set z(val) {
-        if (val >= 0 && val + this.height < this.netAreaGenerator.height - 1) {
+        if (
+            val >= 0 &&
+            val + this.height < this.netAreaGenerator.height - 1
+        ) {
             this._z = val
-        } else {
-            //TODO remove this prob, it is a bit crazy
-            if (this.netAreaGenerator.allowLayerGeneration) {
-                if (val + this.height >= this.netAreaGenerator.height - 1) {
-                    let heightNeeded = val + this.height - (this.netAreaGenerator.height - 1) + 1
-                    console.log(val + this.height, '>=', this.netAreaGenerator.height - 1)
-                    console.log('adding layers', heightNeeded)
-                    this.netAreaGenerator.addLayers(heightNeeded)
-                    this._z = val
-                }
-            }
+            return
+        }
+
+        if (!this.netAreaGenerator.allowLayerGeneration) {
+            return
+        }
+
+        if (
+            val + this.height >=
+            this.netAreaGenerator.height - 1
+        ) {
+            const heightNeeded =
+                val +
+                this.height -
+                (this.netAreaGenerator.height - 1) +
+                1
+
+            console.log(
+                val + this.height,
+                '>=',
+                this.netAreaGenerator.height - 1
+            )
+            console.log('adding layers', heightNeeded)
+
+            this.netAreaGenerator.addLayers(heightNeeded)
+            this._z = val
         }
     }
+
     get x() {
         return this._x
     }
+
     get y() {
         return this._y
     }
+
     get z() {
         return this._z
     }

@@ -6,17 +6,12 @@ const { NetAreaGenerator } =
 const TiledTMXExporter =
     require('./map-exporter/TiledTMXExporter')
 
-
 // ============================================================
 // ROOM TYPE CONFIG
 // ============================================================
 
-const ROOM_TYPE_REGULAR =
-    'regular'
-
-const ROOM_TYPE_LOBBY =
-    'lobby'
-
+const ROOM_TYPE_REGULAR = 'regular'
+const ROOM_TYPE_LOBBY = 'lobby'
 
 // ============================================================
 // LOBBY VISUALS
@@ -28,30 +23,15 @@ const LOBBY_BACKGROUND_ANIMATION =
 const LOBBY_BACKGROUND_TEXTURE =
     '/server/assets/backgrounds/SkyHP.png'
 
-const LOBBY_BACKGROUND_VEL_X =
-    0.115
-
-const LOBBY_BACKGROUND_VEL_Y =
-    0.065
-
+const LOBBY_BACKGROUND_VEL_X = 0.115
+const LOBBY_BACKGROUND_VEL_Y = 0.065
 
 // ============================================================
 // LOBBY MUSIC
 // ============================================================
-//
-// Change this path whenever you choose your actual lobby song.
-//
-// Example:
-// const LOBBY_SONG =
-//     '/server/assets/music/my_lobby_song.ogg'
-//
-// For now this expects:
-// assets/lobby.ogg
-//
 
 const LOBBY_SONG =
     '/server/assets/lobby.ogg'
-
 
 // ============================================================
 // GENERATED NPC CONFIG
@@ -67,7 +47,6 @@ const ATMOSPHERIC_NPC_ASSETS = [
     'official-navi-exe4_orange',
 ]
 
-
 const REGULAR_NPC_LINES = [
     'The Net feels different every time I come through here.',
     'You never know what you will find down the next path.',
@@ -75,13 +54,11 @@ const REGULAR_NPC_LINES = [
     'I have been wandering around here for a while.',
 ]
 
-
 const LOBBY_NPC_LINES = [
     'Take a moment. It is safe here.',
     'Nice place to catch your breath, huh?',
     'You should rest before heading back out there.',
 ]
-
 
 // ============================================================
 // GENERAL HELPERS
@@ -93,16 +70,13 @@ function randomInt(min, max) {
     ) + min
 }
 
-
 function randomChoice(array) {
     return array[
         Math.floor(
-            Math.random() *
-            array.length
+            Math.random() * array.length
         )
     ]
 }
-
 
 function shuffle(array) {
     for (
@@ -112,32 +86,22 @@ function shuffle(array) {
     ) {
         const j =
             Math.floor(
-                Math.random() *
-                (i + 1)
+                Math.random() * (i + 1)
             )
 
-        const temp =
-            array[i]
-
-        array[i] =
-            array[j]
-
-        array[j] =
-            temp
+        const temp = array[i]
+        array[i] = array[j]
+        array[j] = temp
     }
 
     return array
 }
 
-
 // ============================================================
-// INTERNAL MAP TREE GENERATION
+// REGULAR DUNGEON TREE GENERATION
 // ============================================================
 
-function createDungeonNode(
-    depth,
-    maxDepth
-) {
+function createDungeonNode(depth, maxDepth) {
     const node = {
         features: {
             children: [],
@@ -151,24 +115,12 @@ function createDungeonNode(
     let childCount
 
     if (depth === 0) {
-        childCount =
-            randomInt(
-                2,
-                3
-            )
+        childCount = randomInt(2, 3)
     } else {
-        childCount =
-            randomInt(
-                0,
-                2
-            )
+        childCount = randomInt(0, 2)
     }
 
-    for (
-        let i = 0;
-        i < childCount;
-        i++
-    ) {
+    for (let i = 0; i < childCount; i++) {
         node.features.children.push(
             createDungeonNode(
                 depth + 1,
@@ -180,25 +132,16 @@ function createDungeonNode(
     return node
 }
 
-
-function assignParents(
-    node,
-    parent = null
-) {
-    node.parent =
-        parent
+function assignParents(node, parent = null) {
+    node.parent = parent
 
     for (
         const child
         of node.features?.children || []
     ) {
-        assignParents(
-            child,
-            node
-        )
+        assignParents(child, node)
     }
 }
-
 
 function collectLeaves(
     node,
@@ -213,14 +156,10 @@ function collectLeaves(
             node,
             depth,
         })
-
         return leaves
     }
 
-    for (
-        const child
-        of children
-    ) {
+    for (const child of children) {
         collectLeaves(
             child,
             depth + 1,
@@ -231,28 +170,18 @@ function collectLeaves(
     return leaves
 }
 
-
-function collectNodes(
-    node,
-    nodes = []
-) {
-    nodes.push(
-        node
-    )
+function collectNodes(node, nodes = []) {
+    nodes.push(node)
 
     for (
         const child
         of node.features?.children || []
     ) {
-        collectNodes(
-            child,
-            nodes
-        )
+        collectNodes(child, nodes)
     }
 
     return nodes
 }
-
 
 function createTreeWithEnoughLeaves(
     requestedExitCount,
@@ -270,14 +199,10 @@ function createTreeWithEnoughLeaves(
                 maxDepth
             )
 
-        assignParents(
-            root
-        )
+        assignParents(root)
 
         const leaves =
-            collectLeaves(
-                root
-            )
+            collectLeaves(root)
 
         if (
             leaves.length >=
@@ -292,32 +217,41 @@ function createTreeWithEnoughLeaves(
     )
 }
 
+// ============================================================
+// REST AREA GENERATION
+// ============================================================
+//
+// Rest Areas intentionally do not use the normal multi-node
+// dungeon tree. Every return warp, NPC, and forward exit is
+// placed in one large open lobby room.
+//
+
+function createLobbyRoot() {
+    return {
+        room_style: ROOM_TYPE_LOBBY,
+        features: {
+            children: [],
+        },
+    }
+}
 
 // ============================================================
 // BRANCH WARPS
 // ============================================================
 
-function addBranchWarps(
+function addRegularBranchWarps(
     root,
     requestedCount
 ) {
-    if (
-        requestedCount <= 0
-    ) {
+    if (requestedCount <= 0) {
         return 0
     }
 
     const leaves =
         shuffle(
-            collectLeaves(
-                root
-            )
+            collectLeaves(root)
         )
 
-    // Prefer farther terminal rooms.
-    //
-    // shuffle() occurs first so leaves at the same depth
-    // are still randomized.
     leaves.sort(
         (a, b) =>
             b.depth - a.depth
@@ -352,61 +286,60 @@ function addBranchWarps(
     return actualCount
 }
 
+function addLobbyBranchWarps(
+    root,
+    requestedCount
+) {
+    if (!root.features) {
+        root.features = {}
+    }
+
+    root.features.next_floor_warps = []
+
+    for (
+        let index = 0;
+        index < requestedCount;
+        index++
+    ) {
+        root.features.next_floor_warps.push({
+            branch_id: index + 1,
+        })
+    }
+
+    return requestedCount
+}
 
 // ============================================================
 // NPC GENERATION
 // ============================================================
 
-function addNpcToNode(
-    node,
-    npc
-) {
+function addNpcToNode(node, npc) {
     if (!node.features) {
         node.features = {}
     }
 
-    if (
-        !node.features.dungeon_npcs
-    ) {
-        node.features.dungeon_npcs =
-            []
+    if (!node.features.dungeon_npcs) {
+        node.features.dungeon_npcs = []
     }
 
-    node.features.dungeon_npcs.push(
-        npc
-    )
+    node.features.dungeon_npcs.push(npc)
 }
 
-
-function addGeneratedNpcs(
-    root,
-    roomType
-) {
+function addGeneratedNpcs(root, roomType) {
     const nodes =
         shuffle(
-            collectNodes(
-                root
-            )
+            collectNodes(root)
         )
 
-    if (
-        nodes.length === 0
-    ) {
+    if (nodes.length === 0) {
         return
     }
 
+    if (roomType === ROOM_TYPE_LOBBY) {
+        const lobbyNode = nodes[0]
 
-    // --------------------------------------------------------
-    // LOBBY
-    // --------------------------------------------------------
-
-    if (
-        roomType ===
-        ROOM_TYPE_LOBBY
-    ) {
-        // Every lobby gets one healer.
         addNpcToNode(
-            nodes[0],
+            lobbyNode,
             {
                 asset_name:
                     'female-navi-exe6_yellow',
@@ -422,14 +355,9 @@ function addGeneratedNpcs(
             }
         )
 
-
-        // 50% chance of an additional atmospheric NPC.
-        if (
-            nodes.length > 1 &&
-            Math.random() < 0.5
-        ) {
+        if (Math.random() < 0.5) {
             addNpcToNode(
-                nodes[1],
+                lobbyNode,
                 {
                     asset_name:
                         randomChoice(
@@ -449,11 +377,6 @@ function addGeneratedNpcs(
 
         return
     }
-
-
-    // --------------------------------------------------------
-    // REGULAR DUNGEON MAP
-    // --------------------------------------------------------
 
     const npcCount =
         randomInt(
@@ -489,7 +412,6 @@ function addGeneratedNpcs(
     }
 }
 
-
 // ============================================================
 // MAIN
 // ============================================================
@@ -503,55 +425,30 @@ async function main() {
         exitCountArg,
         roomTypeArg,
         outputArg,
-    ] =
-        process.argv.slice(2)
-
-
-    // --------------------------------------------------------
-    // Validate area ID
-    // --------------------------------------------------------
+    ] = process.argv.slice(2)
 
     if (
         !areaId ||
-        !/^[A-Za-z0-9_-]+$/.test(
-            areaId
-        )
+        !/^[A-Za-z0-9_-]+$/.test(areaId)
     ) {
         throw new Error(
             'Invalid or missing area ID'
         )
     }
 
-
-    // --------------------------------------------------------
-    // Validate run ID
-    // --------------------------------------------------------
-
     if (
         !runId ||
-        !/^[A-Za-z0-9_-]+$/.test(
-            runId
-        )
+        !/^[A-Za-z0-9_-]+$/.test(runId)
     ) {
         throw new Error(
             'Invalid or missing dungeon run ID'
         )
     }
 
-
-    // --------------------------------------------------------
-    // Validate room ID
-    // --------------------------------------------------------
-
-    const roomId =
-        Number(
-            roomArg
-        )
+    const roomId = Number(roomArg)
 
     if (
-        !Number.isInteger(
-            roomId
-        ) ||
+        !Number.isInteger(roomId) ||
         roomId < 1
     ) {
         throw new Error(
@@ -559,20 +456,10 @@ async function main() {
         )
     }
 
-
-    // --------------------------------------------------------
-    // Validate depth
-    // --------------------------------------------------------
-
-    const dungeonDepth =
-        Number(
-            depthArg
-        )
+    const dungeonDepth = Number(depthArg)
 
     if (
-        !Number.isInteger(
-            dungeonDepth
-        ) ||
+        !Number.isInteger(dungeonDepth) ||
         dungeonDepth < 0
     ) {
         throw new Error(
@@ -580,15 +467,8 @@ async function main() {
         )
     }
 
-
-    // --------------------------------------------------------
-    // Validate exit count
-    // --------------------------------------------------------
-
     const requestedExitCount =
-        Number(
-            exitCountArg
-        )
+        Number(exitCountArg)
 
     if (
         !Number.isInteger(
@@ -601,27 +481,19 @@ async function main() {
         )
     }
 
-
-    // --------------------------------------------------------
-    // Validate room type
-    // --------------------------------------------------------
-
     const roomType =
         roomTypeArg ||
         ROOM_TYPE_REGULAR
 
     if (
-        roomType !==
-            ROOM_TYPE_REGULAR &&
-        roomType !==
-            ROOM_TYPE_LOBBY
+        roomType !== ROOM_TYPE_REGULAR &&
+        roomType !== ROOM_TYPE_LOBBY
     ) {
         throw new Error(
             'Invalid dungeon room type: ' +
             roomType
         )
     }
-
 
     console.log(
         '[dungeon-generator] generating',
@@ -639,24 +511,34 @@ async function main() {
         requestedExitCount
     )
 
-
     // ========================================================
     // BUILD MAP
     // ========================================================
 
-    const root =
-        createTreeWithEnoughLeaves(
-            requestedExitCount,
-            3
-        )
+    let root
+    let actualExitCount
 
+    if (roomType === ROOM_TYPE_LOBBY) {
+        root = createLobbyRoot()
 
-    const actualExitCount =
-        addBranchWarps(
-            root,
-            requestedExitCount
-        )
+        actualExitCount =
+            addLobbyBranchWarps(
+                root,
+                requestedExitCount
+            )
+    } else {
+        root =
+            createTreeWithEnoughLeaves(
+                requestedExitCount,
+                3
+            )
 
+        actualExitCount =
+            addRegularBranchWarps(
+                root,
+                requestedExitCount
+            )
+    }
 
     if (
         actualExitCount !==
@@ -667,31 +549,28 @@ async function main() {
         )
     }
 
-
     console.log(
         '[dungeon-generator] actual exits:',
         actualExitCount
     )
-
 
     addGeneratedNpcs(
         root,
         roomType
     )
 
-
     const generator =
         new NetAreaGenerator()
 
     generator.maximumNodeDepth =
-        3
-
+        roomType === ROOM_TYPE_LOBBY
+            ? 0
+            : 3
 
     await generator.generateNetArea(
         root,
         false
     )
-
 
     // ========================================================
     // OUTPUT PATH
@@ -699,14 +578,11 @@ async function main() {
 
     const outputPath =
         outputArg
-            ? path.resolve(
-                outputArg
-            )
+            ? path.resolve(outputArg)
             : path.resolve(
                 __dirname,
                 `../../areas/${areaId}.tmx`
             )
-
 
     // ========================================================
     // MAP PROPERTIES
@@ -714,8 +590,7 @@ async function main() {
 
     const exportProperties = {
         Name:
-            roomType ===
-            ROOM_TYPE_LOBBY
+            roomType === ROOM_TYPE_LOBBY
                 ? `Rest Area ${roomId}`
                 : `Dungeon Area ${roomId}`,
 
@@ -735,15 +610,7 @@ async function main() {
             roomType,
     }
 
-
-    // --------------------------------------------------------
-    // Lobby appearance/music
-    // --------------------------------------------------------
-
-    if (
-        roomType ===
-        ROOM_TYPE_LOBBY
-    ) {
+    if (roomType === ROOM_TYPE_LOBBY) {
         Object.assign(
             exportProperties,
             {
@@ -766,23 +633,7 @@ async function main() {
                     LOBBY_SONG,
             }
         )
-    }
-
-
-    // --------------------------------------------------------
-    // Regular dungeon appearance
-    // --------------------------------------------------------
-    //
-    // We intentionally DO NOT specify Song here.
-    //
-    // TiledTMXExporter currently defaults to:
-    //
-    // resources/loops/undernet.ogg
-    //
-    // so regular dungeon music remains exactly as before.
-    // --------------------------------------------------------
-
-    else {
+    } else {
         Object.assign(
             exportProperties,
             {
@@ -804,7 +655,6 @@ async function main() {
         )
     }
 
-
     // ========================================================
     // EXPORT
     // ========================================================
@@ -812,13 +662,11 @@ async function main() {
     const exporter =
         new TiledTMXExporter()
 
-
     await exporter.ExportTMX(
         generator,
         exportProperties,
         outputPath
     )
-
 
     console.log(
         '[dungeon-generator] wrote',
@@ -826,17 +674,12 @@ async function main() {
     )
 }
 
-
 main().catch(
-    (error) => {
+    error => {
         console.error(
             '[dungeon-generator] generation failed'
         )
-
-        console.error(
-            error
-        )
-
+        console.error(error)
         process.exit(1)
     }
 )
