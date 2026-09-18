@@ -564,6 +564,16 @@ end
 
 
 local function destroy_active_run()
+    local run = active_run
+
+    if not run then
+        return
+    end
+
+    -- Clear this first so nobody can join the run while its
+    -- runtime areas are being removed.
+    active_run = nil
+
     for _, area_id in ipairs(
         run.areas
     ) do
@@ -571,6 +581,13 @@ local function destroy_active_run()
             area_id
         )
     end
+
+    print(
+        "[dungeon_warps] destroyed empty shared run " ..
+        run.run_id ..
+        " rooms=" ..
+        #run.areas
+    )
 end
 
 
