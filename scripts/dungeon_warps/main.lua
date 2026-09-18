@@ -5,38 +5,64 @@ local warp_history = {}
 local active_run = nil
 local next_run_id = 0
 
--- Temporary while we prove arbitrary-depth generation.
-local TEST_MAX_FLOORS = 5
-local IS_WINDOWS = package.config:sub(1, 1) == "\\"
 
-local NODE_EXE
+-- ==============================================================
+-- TEST CONFIGURATION
+-- ==============================================================
 
-if IS_WINDOWS then
-    -- Short Windows path avoids cmd.exe quoting problems.
-    NODE_EXE = [[C:\Progra~1\nodejs\node.exe]]
-else
-    -- Raspberry Pi / Linux.
-    NODE_EXE = "node"
-end
+-- Depth 0 is the root room.
+--
+-- With TEST_MAX_DEPTH = 3, the deepest possible route is:
+--
+-- depth 0 -> depth 1 -> depth 2 -> depth 3
+--
+-- Because each room can have up to 3 branches, a fully explored
+-- run could theoretically contain quite a few rooms.
+local TEST_MAX_DEPTH = 5
+
+local TEST_MIN_BRANCHES = 1
+local TEST_MAX_BRANCHES = 4
+
+local DUNGEON_POOL_SIZE = 5
+
+
+-- ==============================================================
+-- RUN / ROOM IDS
+-- ==============================================================
 
 local function create_run_id()
-    next_run_id = next_run_id + 1
+    next_run_id =
+        next_run_id + 1
 
-    return tostring(os.time()) .. "_" .. tostring(next_run_id)
+    return
+        tostring(os.time()) ..
+        "_" ..
+        tostring(next_run_id)
 end
 
 
-local function make_floor_area_id(run_id, floor_number)
+local function make_room_area_id(
+    run_id,
+    room_id
+)
     return string.format(
-        "dungeon_%s_f%03d",
+        "dungeon_%s_r%03d",
         run_id,
-        floor_number
+        room_id
     )
 end
 
 
+-- ==============================================================
+-- FILE HELPERS
+-- ==============================================================
+
 local function read_text_file(path)
-    local file, err = io.open(path, "rb")
+    local file, err =
+        io.open(
+            path,
+            "rb"
+        )
 
     if not file then
         print(
@@ -49,31 +75,132 @@ local function read_text_file(path)
         return nil
     end
 
-    local contents = file:read("*a")
+    local contents =
+        file:read("*a")
+
     file:close()
 
     return contents
 end
 
+local function get_pool_slot_path(
+    exit_count,
+    slot_number
+)
+    return string.format(
+        "./runtime/dungeon_pool/%d/slot_%02d.tmx",
+        exit_count,
+        slot_number
+    )
+end
+
+
+local function get_claimed_layout_path(
+    exit_count,
+    run_id,
+    room_id,
+    slot_number
+)
+    return string.format(
+        "./runtime/dungeon_pool/%d/claimed_%s_r%03d_%02d.tmx",
+        exit_count,
+        run_id,
+        room_id,
+        slot_number
+    )
+end
+
+
+local function claim_layout(
+    exit_count,
+    run_id,
+    room_id
+)
+    local starting_slot =
+        math.random(
+            1,
+            DUNGEON_POOL_SIZE
+        )
+
+    for offset = 0,
+        DUNGEON_POOL_SIZE - 1
+    do
+        local slot_number =
+            (
+                (
+                    starting_slot +
+                    offset -
+                    1
+                )
+                % DUNGEON_POOL_SIZE
+            ) + 1
+
+        local source_path =
+            get_pool_slot_path(
+                exit_count,
+                slot_number
+            )
+
+        local claimed_path =
+            get_claimed_layout_path(
+                exit_count,
+                run_id,
+                room_id,
+                slot_number
+            )
+
+        local renamed =
+            os.rename(
+                source_path,
+                claimed_path
+            )
+
+        if renamed then
+            print(
+                "[dungeon_warps] claimed " ..
+                exit_count ..
+                "-exit layout slot " ..
+                slot_number
+            )
+
+            return claimed_path
+        end
+    end
+
+    return nil
+end
+
+-- ==============================================================
+-- PLAYER BACKTRACK HISTORY
+-- ==============================================================
 
 local function get_history(player_id)
-    local history = warp_history[player_id]
+    local history =
+        warp_history[player_id]
 
     if not history then
         history = {}
-        warp_history[player_id] = history
+
+        warp_history[player_id] =
+            history
     end
 
     return history
 end
 
 
-local function push_history(player_id, area_id, object_id)
-    local history = get_history(player_id)
+local function push_history(
+    player_id,
+    area_id,
+    object_id
+)
+    local history =
+        get_history(player_id)
 
-    -- Prevent duplicate pushes if the warp collision fires more than once
-    -- before the transfer finishes.
-    local previous = history[#history]
+    -- Prevent duplicate pushes if the same collision fires more
+    -- than once before the transfer completes.
+    local previous =
+        history[#history]
 
     if previous
         and previous.area_id == area_id
@@ -84,7 +211,7 @@ local function push_history(player_id, area_id, object_id)
 
     history[#history + 1] = {
         area_id = area_id,
-        object_id = object_id
+        object_id = object_id,
     }
 
     print(
@@ -100,11 +227,18 @@ local function push_history(player_id, area_id, object_id)
 end
 
 
-local function get_entry_object_id(area_id)
-    local entry_id = Net.get_area_custom_property(
-        area_id,
-        "entry_warp_id"
-    )
+-- ==============================================================
+-- AREA ENTRY
+-- ==============================================================
+
+local function get_entry_object_id(
+    area_id
+)
+    local entry_id =
+        Net.get_area_custom_property(
+            area_id,
+            "entry_warp_id"
+        )
 
     if not entry_id then
         return nil
@@ -114,8 +248,14 @@ local function get_entry_object_id(area_id)
 end
 
 
-local function transfer_to_entry(player_id, area_id)
-    local entry_id = get_entry_object_id(area_id)
+local function transfer_to_entry(
+    player_id,
+    area_id
+)
+    local entry_id =
+        get_entry_object_id(
+            area_id
+        )
 
     if not entry_id then
         print(
@@ -126,15 +266,16 @@ local function transfer_to_entry(player_id, area_id)
         return false
     end
 
-    local destination = Net.get_object_by_id(
-        area_id,
-        entry_id
-    )
+    local destination =
+        Net.get_object_by_id(
+            area_id,
+            entry_id
+        )
 
     if not destination then
         print(
             "[dungeon_warps] entry object " ..
-            entry_id ..
+            tostring(entry_id) ..
             " missing from " ..
             area_id
         )
@@ -144,7 +285,9 @@ local function transfer_to_entry(player_id, area_id)
 
     local direction =
         destination.custom_properties
-        and destination.custom_properties["Direction"]
+        and destination.custom_properties[
+            "Direction"
+        ]
         or "Down"
 
     Net.transfer_player(
@@ -161,144 +304,211 @@ local function transfer_to_entry(player_id, area_id)
 end
 
 
-local function generate_floor(run_id, floor_number)
+-- ==============================================================
+-- ROOM GENERATION
+-- ==============================================================
+
+local function generate_room(
+    run_id,
+    room_id,
+    depth
+)
     local area_id =
-        make_floor_area_id(
+        make_room_area_id(
             run_id,
-            floor_number
+            room_id
         )
 
-    local has_next =
-        floor_number < TEST_MAX_FLOORS
+    local exit_count = 0
 
-    local map_path =
-        "./areas/" ..
-        area_id ..
-        ".tmx"
+    if depth < TEST_MAX_DEPTH then
+        exit_count =
+            math.random(
+                TEST_MIN_BRANCHES,
+                TEST_MAX_BRANCHES
+            )
+    end
 
-    -- This should normally not exist because run IDs are unique,
-    -- but removing it avoids accidentally loading stale data.
-    os.remove(map_path)
-
-    local command =
-        NODE_EXE ..
-        ' "tools/dungeon-generator/generate_floor.js" "' ..
-        area_id ..
-        '" "' ..
-        run_id ..
-        '" "' ..
-        tostring(floor_number) ..
-        '" "' ..
-        (has_next and "1" or "0") ..
-        '"'
 
     print(
-        "[dungeon_warps] generating floor " ..
-        floor_number ..
-        " for run " ..
-        run_id
+        "[dungeon_warps] preparing room " ..
+        room_id ..
+        " depth=" ..
+        depth ..
+        " exits=" ..
+        exit_count
     )
 
-    local success, reason, code =
-        os.execute(command)
 
-    -- Handle both Lua-style os.execute return formats.
-    local command_ok =
-        success == true or success == 0
+    -- Claim an already-generated layout.
+    local layout_path =
+        claim_layout(
+            exit_count,
+            run_id,
+            room_id
+        )
 
-    if not command_ok or (code and code ~= 0) then
+
+    if not layout_path then
         print(
-            "[dungeon_warps] generator failed: " ..
-            tostring(reason) ..
-            " " ..
-            tostring(code)
+            "[dungeon_warps] no ready " ..
+            exit_count ..
+            "-exit layouts available"
         )
 
         return nil
     end
+
 
     local map_string =
-        read_text_file(map_path)
+        read_text_file(
+            layout_path
+        )
+
 
     if not map_string then
-        print(
-            "[dungeon_warps] generated TMX could not be read: " ..
-            map_path
+        os.remove(
+            layout_path
         )
 
         return nil
     end
 
-    local update_ok, update_err =
+
+    local update_ok,
+        update_err =
         pcall(
             Net.update_area,
             area_id,
             map_string
         )
 
+
     if not update_ok then
         print(
-            "[dungeon_warps] failed loading generated floor: " ..
+            "[dungeon_warps] failed loading cached room: " ..
             tostring(update_err)
+        )
+
+        os.remove(
+            layout_path
         )
 
         return nil
     end
 
-    print(
-        "[dungeon_warps] generated and loaded " ..
-        area_id
+
+    -- The cached layout is generic.
+    -- Assign its actual dungeon identity now.
+    Net.set_area_custom_property(
+        area_id,
+        "Name",
+        "Dungeon Room " ..
+        tostring(room_id)
     )
 
-    print(
-        "[dungeon_warps] generation date: " ..
-        tostring(
-            Net.get_area_custom_property(
-                area_id,
-                "Generation Date"
-            )
-        )
+    Net.set_area_custom_property(
+        area_id,
+        "dungeon_run_id",
+        run_id
     )
 
-    return area_id
+    Net.set_area_custom_property(
+        area_id,
+        "dungeon_room_id",
+        tostring(room_id)
+    )
+
+    Net.set_area_custom_property(
+        area_id,
+        "dungeon_depth",
+        tostring(depth)
+    )
+
+    Net.set_area_custom_property(
+        area_id,
+        "dungeon_exit_count",
+        tostring(exit_count)
+    )
+
+
+    -- The runtime server now owns the parsed map.
+    -- Remove our claimed cache file.
+    os.remove(
+        layout_path
+    )
+
+
+    print(
+        "[dungeon_warps] loaded cached room " ..
+        room_id ..
+        " as " ..
+        area_id ..
+        " depth=" ..
+        depth ..
+        " exits=" ..
+        exit_count
+    )
+
+
+    return {
+        room_id = room_id,
+        area_id = area_id,
+        depth = depth,
+        exit_count = exit_count,
+        children = {},
+    }
 end
 
 
+-- ==============================================================
+-- SHARED RUN
+-- ==============================================================
+
 local function create_active_run()
-    local run_id = create_run_id()
+    local run_id =
+        create_run_id()
 
     print(
         "[dungeon_warps] creating shared dungeon run " ..
         run_id
     )
 
-    -- Only Floor 1 exists initially.
-    -- Deeper floors are generated when somebody reaches them.
-    local floor1 =
-        generate_floor(
+
+    -- Only the root room exists at first.
+    local root_room =
+        generate_room(
             run_id,
-            1
+            1,
+            0
         )
 
-    if not floor1 then
+    if not root_room then
         print(
-            "[dungeon_warps] failed to create first floor"
+            "[dungeon_warps] failed to create root room"
         )
 
         return nil
     end
 
+
     active_run = {
         run_id = run_id,
 
-        floors = {
-            [1] = floor1,
+        root_room_id = 1,
+
+        -- Room IDs are unique within this run.
+        next_room_id = 2,
+
+        rooms = {
+            [1] = root_room,
         },
 
         areas = {
-            floor1,
-        }
+            root_room.area_id,
+        },
     }
+
 
     print(
         "[dungeon_warps] shared dungeon run ready: " ..
@@ -318,16 +528,32 @@ local function get_active_run()
 end
 
 
-local function run_has_players(run, ignored_player_id)
+-- ==============================================================
+-- RUN CLEANUP
+-- ==============================================================
+
+local function run_has_players(
+    run,
+    ignored_player_id
+)
     if not run then
         return false
     end
 
-    for _, area_id in ipairs(run.areas) do
-        local players = Net.list_players(area_id)
+    for _, area_id in ipairs(
+        run.areas
+    ) do
+        local players =
+            Net.list_players(
+                area_id
+            )
 
-        for _, player_id in ipairs(players) do
-            if player_id ~= ignored_player_id then
+        for _, player_id in ipairs(
+            players
+        ) do
+            if player_id
+                ~= ignored_player_id
+            then
                 return true
             end
         end
@@ -338,50 +564,19 @@ end
 
 
 local function destroy_active_run()
-    local run = active_run
-
-    if not run then
-        return
+    for _, area_id in ipairs(
+        run.areas
+    ) do
+        Net.remove_area(
+            area_id
+        )
     end
-
-    -- Clear this first so nobody new gets sent into areas
-    -- while they are being removed.
-    active_run = nil
-
-    for _, area_id in ipairs(run.areas) do
-        Net.remove_area(area_id)
-
-        local map_path =
-            "./areas/" ..
-            area_id ..
-            ".tmx"
-
-        local removed, remove_err =
-            os.remove(map_path)
-
-        if removed then
-            print(
-                "[dungeon_warps] deleted generated file " ..
-                map_path
-            )
-        elseif remove_err then
-            print(
-                "[dungeon_warps] could not delete " ..
-                map_path ..
-                ": " ..
-                tostring(remove_err)
-            )
-        end
-    end
-
-    print(
-        "[dungeon_warps] destroyed empty shared run " ..
-        run.run_id
-    )
 end
 
 
-local function cleanup_active_run_if_empty(ignored_player_id)
+local function cleanup_active_run_if_empty(
+    ignored_player_id
+)
     if not active_run then
         return
     end
@@ -397,33 +592,49 @@ local function cleanup_active_run_if_empty(ignored_player_id)
 end
 
 
+-- ==============================================================
+-- START
+-- ==============================================================
+
 print("[dungeon_warps] Started!")
 
 
+-- ==============================================================
+-- CUSTOM WARPS
+-- ==============================================================
+
 Net:on("custom_warp", function(event)
-    local player_id = event.player_id
-    local area_id = Net.get_player_area(player_id)
+    local player_id =
+        event.player_id
 
-    local object = Net.get_object_by_id(
-        area_id,
-        event.object_id
-    )
+    local area_id =
+        Net.get_player_area(
+            player_id
+        )
 
-    if not object or not object.custom_properties then
+    local object =
+        Net.get_object_by_id(
+            area_id,
+            event.object_id
+        )
+
+    if not object
+        or not object.custom_properties
+    then
         return
     end
 
-    local props = object.custom_properties
+    local props =
+        object.custom_properties
 
 
-    -- ==============================================================
+    -- ==========================================================
     -- DUNGEON ENTRANCE
-    -- ==============================================================
+    -- ==========================================================
 
-    -- The first player creates the shared dungeon.
-    -- Everybody else joins that same active dungeon.
     if props["is_dungeon_entrance"] then
-        local run = get_active_run()
+        local run =
+            get_active_run()
 
         if not run then
             print(
@@ -434,116 +645,244 @@ Net:on("custom_warp", function(event)
             return
         end
 
+
+        local root_room =
+            run.rooms[
+                run.root_room_id
+            ]
+
+        if not root_room then
+            print(
+                "[dungeon_warps] active run has no root room"
+            )
+
+            return
+        end
+
+
         push_history(
             player_id,
             area_id,
             object.id
         )
+
 
         print(
             "[dungeon_warps] " ..
             player_id ..
             " entering shared run " ..
-            run.run_id
+            run.run_id ..
+            " at room " ..
+            root_room.room_id
         )
+
 
         transfer_to_entry(
             player_id,
-            run.floors[1]
+            root_room.area_id
         )
 
         return
     end
 
 
-    -- ==============================================================
-    -- GO DEEPER
-    -- ==============================================================
+    -- ==========================================================
+    -- BRANCH / FORWARD WARP
+    -- ==========================================================
 
     if props["is_dungeon_forward"] then
         if not active_run then
             print(
-                "[dungeon_warps] forward warp used with no active run"
+                "[dungeon_warps] branch warp used with no active run"
             )
 
             return
         end
 
-        local current_floor =
+
+        local area_run_id =
+            Net.get_area_custom_property(
+                area_id,
+                "dungeon_run_id"
+            )
+
+        if tostring(area_run_id)
+            ~= tostring(active_run.run_id)
+        then
+            print(
+                "[dungeon_warps] branch warp belongs to another dungeon run"
+            )
+
+            return
+        end
+
+
+        local current_room_id =
             tonumber(
                 Net.get_area_custom_property(
                     area_id,
-                    "dungeon_floor"
+                    "dungeon_room_id"
                 )
             )
 
-        if not current_floor then
+        local branch_id =
+            tonumber(
+                props["dungeon_branch"]
+            )
+
+
+        if not current_room_id
+            or not branch_id
+        then
             print(
-                "[dungeon_warps] current area has no dungeon_floor property"
+                "[dungeon_warps] branch warp is missing room/branch information"
             )
 
             return
         end
 
-        local next_floor =
-            current_floor + 1
 
-        if next_floor > TEST_MAX_FLOORS then
+        local current_room =
+            active_run.rooms[
+                current_room_id
+            ]
+
+        if not current_room then
             print(
-                "[dungeon_warps] floor " ..
-                current_floor ..
-                " is currently the deepest floor"
+                "[dungeon_warps] unknown dungeon room " ..
+                tostring(
+                    current_room_id
+                )
             )
 
             return
         end
 
-        local next_area =
-            active_run.floors[next_floor]
 
-        -- The first person to reach this depth generates it.
-        if not next_area then
-            print(
-                "[dungeon_warps] first player reached floor " ..
-                next_floor ..
-                "; generating it now"
-            )
+        local child_room_id =
+            current_room.children[
+                branch_id
+            ]
 
-            next_area =
-                generate_floor(
-                    active_run.run_id,
-                    next_floor
-                )
+        local child_room
 
-            if not next_area then
+
+        -- ------------------------------------------------------
+        -- Existing branch
+        -- ------------------------------------------------------
+
+        if child_room_id then
+            child_room =
+                active_run.rooms[
+                    child_room_id
+                ]
+
+            if not child_room then
                 print(
-                    "[dungeon_warps] failed to generate floor " ..
-                    next_floor
+                    "[dungeon_warps] branch references missing room " ..
+                    tostring(child_room_id)
                 )
 
                 return
             end
 
-            active_run.floors[next_floor] =
-                next_area
+
+            print(
+                "[dungeon_warps] reusing room " ..
+                child_room_id ..
+                " from room " ..
+                current_room_id ..
+                " branch " ..
+                branch_id
+            )
+
+
+        -- ------------------------------------------------------
+        -- Unexplored branch
+        -- ------------------------------------------------------
+
+        else
+            local child_depth =
+                current_room.depth + 1
+
+
+            if child_depth
+                > TEST_MAX_DEPTH
+            then
+                print(
+                    "[dungeon_warps] branch would exceed maximum test depth"
+                )
+
+                return
+            end
+
+
+            child_room_id =
+                active_run.next_room_id
+
+
+            print(
+                "[dungeon_warps] unexplored branch: room " ..
+                current_room_id ..
+                " branch " ..
+                branch_id ..
+                " -> generating room " ..
+                child_room_id
+            )
+
+
+            child_room =
+                generate_room(
+                    active_run.run_id,
+                    child_room_id,
+                    child_depth
+                )
+
+
+            if not child_room then
+                print(
+                    "[dungeon_warps] failed generating branch room"
+                )
+
+                return
+            end
+
+
+            -- Only consume the room ID once generation succeeded.
+            active_run.next_room_id =
+                child_room_id + 1
+
+
+            active_run.rooms[
+                child_room_id
+            ] =
+                child_room
+
+
+            current_room.children[
+                branch_id
+            ] =
+                child_room_id
+
 
             active_run.areas[
                 #active_run.areas + 1
-            ] = next_area
+            ] =
+                child_room.area_id
+
 
             print(
-                "[dungeon_warps] floor " ..
-                next_floor ..
-                " added to shared run " ..
-                active_run.run_id
-            )
-        else
-            print(
-                "[dungeon_warps] floor " ..
-                next_floor ..
-                " already exists; reusing it"
+                "[dungeon_warps] room " ..
+                current_room_id ..
+                " branch " ..
+                branch_id ..
+                " generated room " ..
+                child_room_id ..
+                " depth=" ..
+                child_depth
             )
         end
+
 
         push_history(
             player_id,
@@ -551,25 +890,30 @@ Net:on("custom_warp", function(event)
             object.id
         )
 
+
         transfer_to_entry(
             player_id,
-            next_area
+            child_room.area_id
         )
 
         return
     end
 
 
-    -- ==============================================================
-    -- GO BACK
-    -- ==============================================================
+    -- ==========================================================
+    -- BACKLINK
+    -- ==========================================================
 
     if props["is_back_link"] then
         local history =
-            warp_history[player_id]
+            warp_history[
+                player_id
+            ]
 
         local previous =
-            history and history[#history]
+            history
+            and history[#history]
+
 
         if not previous then
             print(
@@ -579,6 +923,7 @@ Net:on("custom_warp", function(event)
 
             return
         end
+
 
         local destination =
             Net.get_object_by_id(
@@ -594,10 +939,14 @@ Net:on("custom_warp", function(event)
             return
         end
 
+
         local direction =
             destination.custom_properties
-            and destination.custom_properties["Direction"]
+            and destination.custom_properties[
+                "Direction"
+            ]
             or "Down"
+
 
         Net.transfer_player(
             player_id,
@@ -609,11 +958,18 @@ Net:on("custom_warp", function(event)
             direction
         )
 
-        table.remove(history)
+
+        table.remove(
+            history
+        )
+
 
         if #history == 0 then
-            warp_history[player_id] = nil
+            warp_history[
+                player_id
+            ] = nil
         end
+
 
         print(
             "[dungeon_warps] returned " ..
@@ -629,27 +985,48 @@ Net:on("custom_warp", function(event)
 end)
 
 
-Net:on("player_area_transfer", function(event)
-    -- If somebody simply moved between dungeon floors,
-    -- another dungeon area will still contain them.
-    --
-    -- If the last player returned to the overworld,
-    -- this destroys the completed/abandoned run.
-    cleanup_active_run_if_empty()
-end)
+-- ==============================================================
+-- PLAYER AREA TRANSFER
+-- ==============================================================
+
+Net:on(
+    "player_area_transfer",
+    function(event)
+        -- Moving from one dungeon room to another leaves at least
+        -- one player somewhere in active_run.areas.
+        --
+        -- Returning the final player to the overworld causes the
+        -- whole runtime graph to be removed.
+        cleanup_active_run_if_empty()
+    end
+)
 
 
-Net:on("player_disconnect", function(event)
-    local player_id = event.player_id
+-- ==============================================================
+-- PLAYER DISCONNECT
+-- ==============================================================
 
-    warp_history[player_id] = nil
+Net:on(
+    "player_disconnect",
+    function(event)
+        local player_id =
+            event.player_id
 
-    print(
-        "[dungeon_warps] cleared warp history for disconnected player " ..
-        player_id
-    )
+        warp_history[
+            player_id
+        ] = nil
 
-    -- The disconnecting player may still appear in Net.list_players()
-    -- during this callback, so explicitly ignore them.
-    cleanup_active_run_if_empty(player_id)
-end)
+
+        print(
+            "[dungeon_warps] cleared warp history for disconnected player " ..
+            player_id
+        )
+
+
+        -- During this callback the disconnecting player can still
+        -- appear in Net.list_players(), so explicitly ignore them.
+        cleanup_active_run_if_empty(
+            player_id
+        )
+    end
+)

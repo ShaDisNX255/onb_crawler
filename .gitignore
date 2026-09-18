@@ -1,3 +1,6 @@
+runtime/*
+log.txt
+nul
 net_battle_server
 node_modules/
 *.log

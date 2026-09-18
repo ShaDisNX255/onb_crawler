@@ -103,14 +103,8 @@ class NextFloorFeature extends Feature {
 
         Object.assign(this.properties, {
             is_dungeon_forward: 1,
+            dungeon_branch: feature.branch_id,
         })
-    }
-
-    async onExport({ exporter, newObject }) {
-        exporter.AddProperty(
-            'next_floor_warp_id',
-            newObject['@id']
-        )
     }
 }
 
