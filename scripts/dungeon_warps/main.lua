@@ -1,6 +1,7 @@
 local last_warp = {}
+print("[dungeon_warps] Started! ")
 
-Net:on("object_interaction", function(event)
+Net:on("custom_warp", function(event)
     local player_id = event.player_id
     local area_id = Net.get_player_area(player_id)
     local object = Net.get_object_by_id(area_id, event.object_id)

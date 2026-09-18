@@ -96,12 +96,12 @@ let default_tiles = {
     },
     'back-stairs': {
         subIndex: {
-            0: { type: 'Tile', name: 'Backward-Base-Left', id: 11 },
-            1: { type: 'Tile', name: 'Backward-Base-Right', id: 12 },
-            2: { type: 'Tile', name: 'Backward-Middle-Left', id: 13 },
-            3: { type: 'Tile', name: 'Backward-Middle-Right', id: 14 },
-            4: { type: 'Tile', name: 'Backward-Top-Left', id: 15 },
-            5: { type: 'Tile', name: 'Backward-Top-Right', id: 16 },
+            0: { type: 'Tile', name: 'Backward-Base-Right', id: 11 },
+            1: { type: 'Tile', name: 'Backward-Base-Left', id: 12 },
+            2: { type: 'Tile', name: 'Backward-Middle-Right', id: 13 },
+            3: { type: 'Tile', name: 'Backward-Middle-Left', id: 14 },
+            4: { type: 'Tile', name: 'Backward-Top-Right', id: 12 },
+            5: { type: 'Tile', name: 'Backward-Top-Left', id: 11 },
         },
     },
 }

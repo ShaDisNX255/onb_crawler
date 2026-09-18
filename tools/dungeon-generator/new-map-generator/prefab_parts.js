@@ -4,14 +4,14 @@ let sr = 8
 let slt = 9
 let srt = 10
 
-let sdl_base = 11
-let sdr_base = 12
+let sdl_base = 12
+let sdr_base = 11
 
-let sdl_middle = 13
-let sdr_middle = 14
+let sdl_middle = 14
+let sdr_middle = 13
 
-let sdl_top = 15
-let sdr_top = 16
+let sdl_top = 12
+let sdr_top = 11
 
 let parts = [
     {
