@@ -3,12 +3,6 @@ local eznpcs =
         'scripts/ezlibs-scripts/eznpcs/eznpcs'
     )
 
-local ezmemory =
-    require(
-        'scripts/ezlibs-scripts/ezmemory'
-    )
-
-
 local dungeon_heal = {
     name = "dungeon_heal",
 
@@ -44,22 +38,10 @@ local dungeon_heal = {
             )
 
 
-            local max_health =
-                tonumber(
-                    ezmemory.get_player_max_health(
-                        player_id
-                    )
-                )
-                or
-                tonumber(
-                    Net.get_player_max_health(
-                        player_id
-                    )
-                )
-
+            local max_health = Net.get_player_max_health(player_id)
 
             if max_health then
-                ezmemory.set_player_health(
+                Net.set_player_health(
                     player_id,
                     max_health
                 )
