@@ -49,8 +49,8 @@ class LinkFeature extends Feature {
     }
 }
 class HomeWarpFeature extends Feature {
-    static tsxPath = `../assets/shared/objects/home_warp.tsx`
-    static tsxTileCount = 5
+    static tsxPath = `../assets/tiles/warp.tsx`
+    static tsxTileCount = 6
     constructor(x, y, z, feature, properties) {
         super(x, y, z, properties)
         this.type = 'Home Warp'
@@ -69,13 +69,14 @@ class HomeWarpFeature extends Feature {
 }
 
 class BackLinkFeature extends HomeWarpFeature {
-    static tsxPath = `../assets/shared/objects/back_link.tsx`
+    static tsxPath = `../assets/tiles/warp.tsx`
     static tsxTileCount = 6
 
     constructor(x, y, z, feature, properties) {
         super(x, y, z, feature, properties)
 
         this.type = 'Custom Warp'
+        this.tid = 1
 
         delete this.properties["Incoming Data"]
         delete this.properties["Warp In"]
@@ -85,6 +86,31 @@ class BackLinkFeature extends HomeWarpFeature {
         }
 
         Object.assign(this.properties, newProperties)
+    }
+}
+
+class NextFloorFeature extends Feature {
+    static tsxPath = `../assets/tiles/warp.tsx`
+    static tsxTileCount = 6
+
+    constructor(x, y, z, feature, properties) {
+        super(x, y, z, properties)
+
+        this.type = 'Custom Warp'
+        this.tid = 1
+        this.width = 61
+        this.height = 32
+
+        Object.assign(this.properties, {
+            is_dungeon_forward: 1,
+        })
+    }
+
+    async onExport({ exporter, newObject }) {
+        exporter.AddProperty(
+            'next_floor_warp_id',
+            newObject['@id']
+        )
     }
 }
 
@@ -242,6 +268,11 @@ let featureCategories = {
             extraRequirements: 0,
             className: TagBoardFeature,
         },
+        next_floor_warps: {
+            scrapedName: 'next_floor_warps',
+            extraRequirements: 0,
+            className: NextFloorFeature,
+        },
     },
     wall_features: {
         images: {
@@ -261,4 +292,5 @@ module.exports = {
     HomeWarpFeature,
     PageTagFeature,
     TagBoardFeature,
+    NextFloorFeature,
 }

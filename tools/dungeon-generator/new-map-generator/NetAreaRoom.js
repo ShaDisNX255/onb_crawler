@@ -14,6 +14,7 @@ class NetAreaRoom {
         this.features = {
             links: {},
             back_links: {},
+            next_floor_warps: {},
             text: {},
             page_tags: {},
             tag_boards: {},
