@@ -284,6 +284,7 @@ class NetAreaRoom {
             home_warps: {},
             dungeon_npcs: {},
             green_mystery_data: {},
+            blue_mystery_data: {},
             red_mystery_data: {},
         }
         this.nextGroundFeatureIndex = 0
