@@ -10,6 +10,19 @@ config.debug_price = 50
 
 
 -- ============================================================
+-- PURCHASE FEEDBACK
+-- ============================================================
+
+-- Server asset path for the successful-purchase sound.
+--
+-- Put the .ogg at:
+--     assets/sfx/chip_purchase.ogg
+--
+-- Set this to nil if you temporarily want no sound.
+config.purchase_sfx_path =
+    "/server/assets/sfx/chip_purchase.ogg"
+
+-- ============================================================
 -- STOCK
 -- ============================================================
 

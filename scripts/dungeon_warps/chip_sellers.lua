@@ -489,6 +489,64 @@ local function try_purchase(
     )
 
 
+    -- --------------------------------------------------------
+    -- PURCHASE FEEDBACK
+    -- --------------------------------------------------------
+
+    if
+        config.purchase_sfx_path
+        and config.purchase_sfx_path ~= ""
+    then
+        local provided,
+            provide_error =
+            pcall(
+                Net.provide_asset_for_player,
+                player_id,
+                config.purchase_sfx_path
+            )
+
+        if not provided then
+            print(
+                "[chip_sellers] warning: could not provide purchase SFX: " ..
+                tostring(
+                    provide_error
+                )
+            )
+        end
+
+
+        local played,
+            play_error =
+            pcall(
+                Net.play_sound_for_player,
+                player_id,
+                config.purchase_sfx_path
+            )
+
+        if not played then
+            print(
+                "[chip_sellers] warning: could not play purchase SFX: " ..
+                tostring(
+                    play_error
+                )
+            )
+        end
+    end
+
+
+    await(
+        message_player(
+            player_id,
+            'Bought "' ..
+                display_name ..
+                '" for ' ..
+                tostring(price) ..
+                "z!",
+            mugshot
+        )
+    )
+
+
     print(
         "[chip_sellers] " ..
         tostring(player_id) ..

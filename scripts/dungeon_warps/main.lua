@@ -36,6 +36,7 @@ local TEST_MAX_DEPTH = 5
 local TEST_MIN_BRANCHES = 1
 local TEST_MAX_BRANCHES = 4
 local DUNGEON_POOL_SIZE = 5
+
 -- If the final player disconnects unexpectedly,
 -- preserve the run briefly so they can reconnect.
 local DISCONNECT_GRACE_SECONDS = 120
@@ -573,7 +574,6 @@ Net:on("custom_warp", function(event)
                 run.run_id
             )
 
-
         if not run_ready then
             print(
                 "[dungeon_warps] failed initializing crawler run for " ..
@@ -602,9 +602,58 @@ Net:on("custom_warp", function(event)
             root_room.room_type
         )
 
-        transfer_to_entry(
-            player_id,
-            root_room.area_id
+        local transferred =
+            transfer_to_entry(
+                player_id,
+                root_room.area_id
+            )
+
+        if not transferred then
+            return
+        end
+
+        -- ------------------------------------------------------
+        -- RECONNECT / RUN CHIP RESTORE
+        -- ------------------------------------------------------
+        --
+        -- player_area_transfer can occur before every script sees
+        -- the newly-transferred dungeon area as the player's
+        -- current area.
+        --
+        -- Wait briefly after the transfer, then rebuild the
+        -- crawler whitelist and resend every chip already earned
+        -- during this active run.
+        --
+        -- The crawler whitelist keeps its own per-connection
+        -- hydration guard, so normal room-to-room movement will
+        -- not repeatedly resend these rewards.
+        -- ------------------------------------------------------
+
+        Async.sleep(
+            0.5
+        ).and_then(
+            function()
+                if not Net.is_player(
+                    player_id
+                ) then
+                    return
+                end
+
+                local restored,
+                    restore_reason =
+                    crawler_whitelist.restore_unlocked_cards_for_current_run(
+                        player_id
+                    )
+
+                if restored == false then
+                    print(
+                        "[dungeon_warps] crawler chip restore skipped/failed for " ..
+                        tostring(player_id) ..
+                        ": " ..
+                        tostring(restore_reason)
+                    )
+                end
+            end
         )
 
         return
