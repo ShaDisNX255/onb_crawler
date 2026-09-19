@@ -26,6 +26,9 @@ local TEST_MAX_DEPTH = 5
 local TEST_MIN_BRANCHES = 1
 local TEST_MAX_BRANCHES = 4
 local DUNGEON_POOL_SIZE = 5
+-- If the final player disconnects unexpectedly,
+-- preserve the run briefly so they can reconnect.
+local DISCONNECT_GRACE_SECONDS = 120
 
 -- TEMPORARY:
 -- 1.0 guarantees Regular -> Lobby -> Regular -> Lobby...
@@ -479,7 +482,35 @@ Net:on("actor_interaction", function(event)
 end)
 
 Net:on("tick", function(event)
-    eznpcs.on_tick(event.delta_time)
+    eznpcs.on_tick(
+        event.delta_time
+    )
+
+    if
+        active_run and
+        active_run.disconnect_grace_remaining
+    then
+        if run_has_players(active_run) then
+            -- Somebody returned before the timer expired.
+            active_run.disconnect_grace_remaining =
+                nil
+        else
+            active_run.disconnect_grace_remaining =
+                active_run.disconnect_grace_remaining -
+                (tonumber(event.delta_time) or 0)
+
+            if
+                active_run.disconnect_grace_remaining <=
+                0
+            then
+                print(
+                    "[dungeon_warps] disconnect grace expired"
+                )
+
+                destroy_active_run()
+            end
+        end
+    end
 end)
 
 -- ==============================================================
@@ -511,6 +542,8 @@ Net:on("custom_warp", function(event)
             )
             return
         end
+
+        run.disconnect_grace_remaining = nil
 
         local root_room = run.rooms[run.root_room_id]
 
@@ -785,5 +818,25 @@ Net:on("player_disconnect", function(event)
 
     -- The disconnecting player can still appear in
     -- Net.list_players() during this callback.
-    cleanup_active_run_if_empty(player_id)
+    if
+        active_run and
+        not run_has_players(
+            active_run,
+            player_id
+        )
+    then
+        if
+            not active_run.disconnect_grace_remaining
+        then
+            active_run.disconnect_grace_remaining =
+                DISCONNECT_GRACE_SECONDS
+
+            print(
+                "[dungeon_warps] run empty after disconnect; " ..
+                "preserving it for " ..
+                DISCONNECT_GRACE_SECONDS ..
+                " seconds"
+            )
+        end
+    end
 end)
