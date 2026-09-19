@@ -81,6 +81,7 @@ local dungeon_chip_seller = {
             local mugshot =
                 eznpcs.get_dialogue_mugshot(
                     npc,
+                    player_id,
                     dialogue
                 )
 
