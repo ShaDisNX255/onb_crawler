@@ -19,6 +19,11 @@ local chip_sellers =
         "scripts/dungeon_warps/chip_sellers"
     )
 
+local crawler_whitelist =
+    require(
+        "scripts/ezlibs-scripts/crawler_whitelist"
+    )
+
 require('scripts/events/eznpcs_events')
 
 -- ==============================================================
@@ -558,6 +563,25 @@ Net:on("custom_warp", function(event)
 
         if not root_room then
             print("[dungeon_warps] active run has no root room")
+            return
+        end
+
+        local run_ready,
+            run_reason =
+            crawler_whitelist.begin_run_for_player(
+                player_id,
+                run.run_id
+            )
+
+
+        if not run_ready then
+            print(
+                "[dungeon_warps] failed initializing crawler run for " ..
+                tostring(player_id) ..
+                ": " ..
+                tostring(run_reason)
+            )
+
             return
         end
 
