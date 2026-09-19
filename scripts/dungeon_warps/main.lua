@@ -14,6 +14,11 @@ local eznpcs = require('scripts/ezlibs-scripts/eznpcs/eznpcs')
 -- dialogue_types.lua expects eznpcs to exist globally.
 _G.eznpcs = eznpcs
 
+local chip_sellers =
+    require(
+        "scripts/dungeon_warps/chip_sellers"
+    )
+
 require('scripts/events/eznpcs_events')
 
 -- ==============================================================
@@ -428,6 +433,10 @@ local function destroy_active_run()
     if not run then
         return
     end
+
+    chip_sellers.clear_run(
+        run.run_id
+    )
 
     -- Clear this before removing areas so nobody new can
     -- accidentally join a run being destroyed.

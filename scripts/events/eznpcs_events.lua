@@ -3,6 +3,11 @@ local eznpcs =
         'scripts/ezlibs-scripts/eznpcs/eznpcs'
     )
 
+local chip_sellers =
+    require(
+        "scripts/dungeon_warps/chip_sellers"
+    )
+
 local dungeon_heal = {
     name = "dungeon_heal",
 
@@ -62,7 +67,36 @@ local dungeon_heal = {
     end,
 }
 
+local dungeon_chip_seller = {
+    name =
+        "dungeon_chip_seller",
+
+    action =
+        function(
+            npc,
+            player_id,
+            dialogue,
+            relay_object
+        )
+            local mugshot =
+                eznpcs.get_dialogue_mugshot(
+                    npc,
+                    dialogue
+                )
+
+            return chip_sellers.interact(
+                player_id,
+                dialogue,
+                mugshot
+            )
+        end,
+}
+
 
 eznpcs.add_event(
     dungeon_heal
+)
+
+eznpcs.add_event(
+    dungeon_chip_seller
 )

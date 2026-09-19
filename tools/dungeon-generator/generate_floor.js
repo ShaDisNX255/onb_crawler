@@ -47,6 +47,22 @@ const ATMOSPHERIC_NPC_ASSETS = [
     'official-navi-exe4_orange',
 ]
 
+const CHIP_SELLER_NPC_ASSETS = [
+    'normal-navi-bn4_green',
+    'male-navi-exe6_teal',
+    'official-navi-exe4_orange',
+]
+
+
+// Starting values.
+// These are intentionally easy to rebalance later.
+
+const REGULAR_CHIP_SELLER_CHANCE =
+    0.25
+
+const LOBBY_CHIP_SELLER_CHANCE =
+    0.50
+
 const REGULAR_NPC_LINES = [
     'The Net feels different every time I come through here.',
     'You never know what you will find down the next path.',
@@ -350,39 +366,131 @@ function addNpcToNode(node, npc) {
     node.features.dungeon_npcs.push(npc)
 }
 
-function addGeneratedNpcs(root, roomType) {
+function addGeneratedNpcs(
+    root,
+    roomType
+) {
     const nodes =
         shuffle(
             collectNodes(root)
         )
 
+
     if (nodes.length === 0) {
         return
     }
 
-    if (roomType === ROOM_TYPE_LOBBY) {
-        const lobbyNode = nodes[0]
+
+    let nextNpcNodeIndex = 0
+
+
+    function hasFreeNode() {
+        return (
+            nextNpcNodeIndex <
+            nodes.length
+        )
+    }
+
+
+    function takeNode() {
+        if (!hasFreeNode()) {
+            return null
+        }
+
+        const node =
+            nodes[
+                nextNpcNodeIndex
+            ]
+
+        nextNpcNodeIndex++
+
+        return node
+    }
+
+
+    function addChipSeller() {
+        const node =
+            takeNode()
+
+        if (!node) {
+            return false
+        }
 
         addNpcToNode(
-            lobbyNode,
+            node,
             {
                 asset_name:
-                    'female-navi-exe6_yellow',
+                    randomChoice(
+                        CHIP_SELLER_NPC_ASSETS
+                    ),
 
                 dialogue_type:
                     'first',
 
                 event_name:
-                    'dungeon_heal',
+                    'dungeon_chip_seller',
 
                 text:
-                    'You have had a tough journey, traveler. Rest here.',
+                    'I sell battle chips.',
             }
         )
 
-        if (Math.random() < 0.5) {
+        return true
+    }
+
+
+    // --------------------------------------------------------
+    // LOBBY
+    // --------------------------------------------------------
+
+    if (
+        roomType ===
+        ROOM_TYPE_LOBBY
+    ) {
+        // Every lobby gets exactly one healer.
+        const healerNode =
+            takeNode()
+
+        if (healerNode) {
             addNpcToNode(
-                lobbyNode,
+                healerNode,
+                {
+                    asset_name:
+                        'female-navi-exe6_yellow',
+
+                    dialogue_type:
+                        'first',
+
+                    event_name:
+                        'dungeon_heal',
+
+                    text:
+                        'You have had a tough journey, traveler. Rest here.',
+                }
+            )
+        }
+
+
+        // Chip seller.
+        if (
+            hasFreeNode() &&
+            Math.random() <
+                LOBBY_CHIP_SELLER_CHANCE
+        ) {
+            addChipSeller()
+        }
+
+
+        // 50% chance of an atmospheric NPC.
+        if (
+            hasFreeNode() &&
+            Math.random() < 0.5
+        ) {
+            const atmosphericNode =
+                takeNode()
+
+            addNpcToNode(
+                atmosphericNode,
                 {
                     asset_name:
                         randomChoice(
@@ -403,7 +511,12 @@ function addGeneratedNpcs(root, roomType) {
         return
     }
 
-    const npcCount =
+
+    // --------------------------------------------------------
+    // REGULAR DUNGEON ROOM
+    // --------------------------------------------------------
+
+    const atmosphericCount =
         randomInt(
             0,
             Math.min(
@@ -412,13 +525,21 @@ function addGeneratedNpcs(root, roomType) {
             )
         )
 
+
     for (
         let i = 0;
-        i < npcCount;
+        i < atmosphericCount;
         i++
     ) {
+        const atmosphericNode =
+            takeNode()
+
+        if (!atmosphericNode) {
+            break
+        }
+
         addNpcToNode(
-            nodes[i],
+            atmosphericNode,
             {
                 asset_name:
                     randomChoice(
@@ -434,6 +555,15 @@ function addGeneratedNpcs(root, roomType) {
                     ),
             }
         )
+    }
+
+
+    if (
+        hasFreeNode() &&
+        Math.random() <
+            REGULAR_CHIP_SELLER_CHANCE
+    ) {
+        addChipSeller()
     }
 }
 
