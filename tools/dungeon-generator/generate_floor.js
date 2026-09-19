@@ -61,6 +61,22 @@ const LOBBY_NPC_LINES = [
 ]
 
 // ============================================================
+// MYSTERY DATA CONFIG
+// ============================================================
+
+// Three possible Mystery Data objects are placed in each regular
+// map. ezmystery decides how many of the three each player sees.
+const MYSTERY_DATA_CANDIDATES = 3
+
+// 10% of regular maps have one Red Mystery Data candidate.
+// Since ezmystery may hide that candidate, the actual chance of
+// finding an HPMem is lower than 10%.
+const RED_HPMEM_MAP_CHANCE = 0.8
+
+const GREEN_MONEY_MIN = 100
+const GREEN_MONEY_MAX = 500
+
+// ============================================================
 // GENERAL HELPERS
 // ============================================================
 
@@ -413,6 +429,89 @@ function addGeneratedNpcs(root, roomType) {
 }
 
 // ============================================================
+// MYSTERY DATA GENERATION
+// ============================================================
+
+function addMysteryDataToNode(
+    node,
+    featureName,
+    data = {}
+) {
+    if (!node.features) {
+        node.features = {}
+    }
+
+    if (!node.features[featureName]) {
+        node.features[featureName] = []
+    }
+
+    node.features[featureName].push(
+        data
+    )
+}
+
+function addGeneratedMysteryData(
+    root,
+    roomType
+) {
+    // Rest Areas are safe hubs and do not get Mystery Data.
+    if (roomType !== ROOM_TYPE_REGULAR) {
+        return
+    }
+
+    const nodes =
+        shuffle(
+            collectNodes(root)
+        )
+
+    if (nodes.length === 0) {
+        return
+    }
+
+    // At most one HPMem candidate per generated map.
+    const redIndex =
+        Math.random() <
+        RED_HPMEM_MAP_CHANCE
+            ? randomInt(
+                0,
+                MYSTERY_DATA_CANDIDATES - 1
+            )
+            : -1
+
+    for (
+        let i = 0;
+        i < MYSTERY_DATA_CANDIDATES;
+        i++
+    ) {
+        const node =
+            nodes[
+                i % nodes.length
+            ]
+
+        if (i === redIndex) {
+            addMysteryDataToNode(
+                node,
+                'red_mystery_data'
+            )
+
+            continue
+        }
+
+        addMysteryDataToNode(
+            node,
+            'green_mystery_data',
+            {
+                amount:
+                    randomInt(
+                        GREEN_MONEY_MIN / 50,
+                        GREEN_MONEY_MAX / 50
+                    ) * 50,
+            }
+        )
+    }
+}
+
+// ============================================================
 // MAIN
 // ============================================================
 
@@ -559,6 +658,11 @@ async function main() {
         roomType
     )
 
+    addGeneratedMysteryData(
+        root,
+        roomType
+    )
+
     const generator =
         new NetAreaGenerator()
 
@@ -594,6 +698,12 @@ async function main() {
                 ? `Rest Area ${roomId}`
                 : `Dungeon Area ${roomId}`,
 
+            'Forced Base HP':
+                100,
+
+            'Honor HPMem':
+                true,
+
         dungeon_run_id:
             runId,
 
@@ -608,6 +718,19 @@ async function main() {
 
         dungeon_room_type:
             roomType,
+    }
+
+    if (roomType === ROOM_TYPE_REGULAR) {
+        Object.assign(
+            exportProperties,
+            {
+                'Mystery Data Minimum':
+                    0,
+
+                'Mystery Data Maximum':
+                    MYSTERY_DATA_CANDIDATES,
+            }
+        )
     }
 
     if (roomType === ROOM_TYPE_LOBBY) {

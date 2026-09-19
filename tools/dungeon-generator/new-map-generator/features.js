@@ -256,6 +256,61 @@ class DungeonNPCFeature extends Feature {
     }
 }
 
+class GreenMysteryDataFeature extends Feature {
+    static tsxPath =
+        `../assets/ezlibs-assets/ezmystery/GreenMysteryData.tsx`
+
+    static tsxTileCount = 8
+
+    constructor(x, y, z, feature, properties) {
+        super(x, y, z, properties)
+
+        this.type = 'Mystery Data'
+        this.x_spawn_offset = 16
+        this.y_spawn_offset = 16
+        this.width = 14
+        this.height = 43
+
+        Object.assign(
+            this.properties,
+            {
+                Type: 'money',
+                Amount:
+                    feature.amount ||
+                    100,
+            }
+        )
+    }
+}
+
+class RedMysteryDataFeature extends Feature {
+    static tsxPath =
+        `../assets/ezlibs-assets/ezmystery/RedMysteryData.tsx`
+
+    static tsxTileCount = 8
+
+    constructor(x, y, z, feature, properties) {
+        super(x, y, z, properties)
+
+        this.type = 'Mystery Data'
+        this.x_spawn_offset = 16
+        this.y_spawn_offset = 16
+        this.width = 14
+        this.height = 43
+
+        Object.assign(
+            this.properties,
+            {
+                Type: 'item',
+                Name: 'HPMem',
+                Amount: 1,
+                Description:
+                    'Raises maximum HP by 20.',
+            }
+        )
+    }
+}
+
 class ImageFeature extends Feature {
     static tsxPath = `../assets/shared/objects/wall_feature.tsx`
     static tsxTileCount = 2
@@ -299,6 +354,16 @@ let featureCategories = {
             scrapedName: 'dungeon_npcs',
             extraRequirements: 0,
             className: DungeonNPCFeature,
+        },
+        green_mystery_data: {
+            scrapedName: 'green_mystery_data',
+            extraRequirements: 0,
+            className: GreenMysteryDataFeature,
+        },
+        red_mystery_data: {
+            scrapedName: 'red_mystery_data',
+            extraRequirements: 0,
+            className: RedMysteryDataFeature,
         },
         home_warps: {
             scrapedName: 'home_warps',
@@ -351,4 +416,6 @@ module.exports = {
     TagBoardFeature,
     NextFloorFeature,
     DungeonNPCFeature,
+    GreenMysteryDataFeature,
+    RedMysteryDataFeature,
 }

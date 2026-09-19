@@ -30,7 +30,7 @@ local DUNGEON_POOL_SIZE = 5
 -- TEMPORARY:
 -- 1.0 guarantees Regular -> Lobby -> Regular -> Lobby...
 -- Once everything works, change this to 0.15.
-local LOBBY_ROOM_CHANCE = 1.0
+local LOBBY_ROOM_CHANCE = 0.15
 
 -- ==============================================================
 -- RUN / ROOM IDS

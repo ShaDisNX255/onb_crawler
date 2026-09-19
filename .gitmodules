@@ -3,4 +3,5 @@
 	url = https://github.com/Keristero/ezlibs-assets.git
 [submodule "scripts/ezlibs-scripts"]
 	path = scripts/ezlibs-scripts
-	url = https://github.com/Keristero/ezlibs-scripts.git
+	url = https://github.com/ShaDisNX255/ezlibs-scripts.git
+	branch = onb-crawler
