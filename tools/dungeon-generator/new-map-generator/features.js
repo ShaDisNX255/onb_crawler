@@ -283,6 +283,35 @@ class GreenMysteryDataFeature extends Feature {
     }
 }
 
+class BlueMysteryDataFeature extends Feature {
+    static tsxPath =
+        `../assets/ezlibs-assets/ezmystery/BlueMysteryData.tsx`
+
+    static tsxTileCount = 8
+
+    constructor(x, y, z, feature, properties) {
+        super(x, y, z, properties)
+
+        this.type = 'Mystery Data'
+        this.x_spawn_offset = 16
+        this.y_spawn_offset = 16
+        this.width = 14
+        this.height = 43
+
+        Object.assign(
+            this.properties,
+            {
+                Type:
+                    'crawler_chip',
+
+                'Chip Source':
+                    feature.source ||
+                    'blue_mystery',
+            }
+        )
+    }
+}
+
 class RedMysteryDataFeature extends Feature {
     static tsxPath =
         `../assets/ezlibs-assets/ezmystery/RedMysteryData.tsx`
@@ -360,6 +389,11 @@ let featureCategories = {
             extraRequirements: 0,
             className: GreenMysteryDataFeature,
         },
+        blue_mystery_data: {
+            scrapedName: 'blue_mystery_data',
+            extraRequirements: 0,
+            className: BlueMysteryDataFeature,
+        },
         red_mystery_data: {
             scrapedName: 'red_mystery_data',
             extraRequirements: 0,
@@ -417,5 +451,6 @@ module.exports = {
     NextFloorFeature,
     DungeonNPCFeature,
     GreenMysteryDataFeature,
+    BlueMysteryDataFeature,
     RedMysteryDataFeature,
 }

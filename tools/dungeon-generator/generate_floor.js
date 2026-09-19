@@ -66,7 +66,16 @@ const LOBBY_NPC_LINES = [
 
 // Three possible Mystery Data objects are placed in each regular
 // map. ezmystery decides how many of the three each player sees.
-const MYSTERY_DATA_CANDIDATES = 3
+const MYSTERY_DATA_CANDIDATES = 5
+
+// TEMPORARY TEST VALUE.
+//
+// Every regular map gets one Blue Mystery Data candidate.
+// ezmystery may still hide that candidate as part of the
+// player's normal 0-3 visible Mystery Data roll.
+//
+// We'll choose the real probability after testing.
+const BLUE_CHIP_MAP_CHANCE = 1.0
 
 // 10% of regular maps have one Red Mystery Data candidate.
 // Since ezmystery may hide that candidate, the actual chance of
@@ -468,14 +477,41 @@ function addGeneratedMysteryData(
         return
     }
 
-    // At most one HPMem candidate per generated map.
+    // Shuffle candidate positions first so special Mystery Data
+    // types cannot accidentally overwrite one another.
+    const candidateIndices =
+        shuffle(
+            Array.from(
+                {
+                    length:
+                        MYSTERY_DATA_CANDIDATES,
+                },
+                (_, index) => index
+            )
+        )
+
+    let specialIndex = 0
+
+    // At most one Red Mystery Data candidate per map.
     const redIndex =
         Math.random() <
-        RED_HPMEM_MAP_CHANCE
-            ? randomInt(
-                0,
-                MYSTERY_DATA_CANDIDATES - 1
-            )
+            RED_HPMEM_MAP_CHANCE &&
+        specialIndex <
+            candidateIndices.length
+            ? candidateIndices[
+                specialIndex++
+            ]
+            : -1
+
+    // At most one Blue Mystery Data candidate per map.
+    const blueIndex =
+        Math.random() <
+            BLUE_CHIP_MAP_CHANCE &&
+        specialIndex <
+            candidateIndices.length
+            ? candidateIndices[
+                specialIndex++
+            ]
             : -1
 
     for (
@@ -492,6 +528,19 @@ function addGeneratedMysteryData(
             addMysteryDataToNode(
                 node,
                 'red_mystery_data'
+            )
+
+            continue
+        }
+
+        if (i === blueIndex) {
+            addMysteryDataToNode(
+                node,
+                'blue_mystery_data',
+                {
+                    source:
+                        'blue_mystery',
+                }
             )
 
             continue
