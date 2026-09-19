@@ -58,10 +58,10 @@ const CHIP_SELLER_NPC_ASSETS = [
 // These are intentionally easy to rebalance later.
 
 const REGULAR_CHIP_SELLER_CHANCE =
-    0.25
+    0.5
 
 const LOBBY_CHIP_SELLER_CHANCE =
-    0.50
+    1.0
 
 const REGULAR_NPC_LINES = [
     'The Net feels different every time I come through here.',
@@ -82,7 +82,7 @@ const LOBBY_NPC_LINES = [
 
 // Three possible Mystery Data objects are placed in each regular
 // map. ezmystery decides how many of the three each player sees.
-const MYSTERY_DATA_CANDIDATES = 5
+const MYSTERY_DATA_CANDIDATES = 6
 
 // TEMPORARY TEST VALUE.
 //
@@ -141,6 +141,7 @@ function shuffle(array) {
 // ============================================================
 // REGULAR DUNGEON TREE GENERATION
 // ============================================================
+const MAP_INTERNAL_DEPTH = 4
 
 function createDungeonNode(depth, maxDepth) {
     const node = {
@@ -381,64 +382,6 @@ function addGeneratedNpcs(
     }
 
 
-    let nextNpcNodeIndex = 0
-
-
-    function hasFreeNode() {
-        return (
-            nextNpcNodeIndex <
-            nodes.length
-        )
-    }
-
-
-    function takeNode() {
-        if (!hasFreeNode()) {
-            return null
-        }
-
-        const node =
-            nodes[
-                nextNpcNodeIndex
-            ]
-
-        nextNpcNodeIndex++
-
-        return node
-    }
-
-
-    function addChipSeller() {
-        const node =
-            takeNode()
-
-        if (!node) {
-            return false
-        }
-
-        addNpcToNode(
-            node,
-            {
-                asset_name:
-                    randomChoice(
-                        CHIP_SELLER_NPC_ASSETS
-                    ),
-
-                dialogue_type:
-                    'first',
-
-                event_name:
-                    'dungeon_chip_seller',
-
-                text:
-                    'I sell battle chips.',
-            }
-        )
-
-        return true
-    }
-
-
     // --------------------------------------------------------
     // LOBBY
     // --------------------------------------------------------
@@ -447,50 +390,61 @@ function addGeneratedNpcs(
         roomType ===
         ROOM_TYPE_LOBBY
     ) {
-        // Every lobby gets exactly one healer.
-        const healerNode =
-            takeNode()
+        const lobbyNode =
+            nodes[0]
 
-        if (healerNode) {
+
+        // Every lobby gets a healer.
+        addNpcToNode(
+            lobbyNode,
+            {
+                asset_name:
+                    'female-navi-exe6_yellow',
+
+                dialogue_type:
+                    'first',
+
+                event_name:
+                    'dungeon_heal',
+
+                text:
+                    'You have had a tough journey, traveler. Rest here.',
+            }
+        )
+
+
+        // Every lobby currently gets a seller.
+        if (
+            Math.random() <
+            LOBBY_CHIP_SELLER_CHANCE
+        ) {
             addNpcToNode(
-                healerNode,
+                lobbyNode,
                 {
                     asset_name:
-                        'female-navi-exe6_yellow',
+                        randomChoice(
+                            CHIP_SELLER_NPC_ASSETS
+                        ),
 
                     dialogue_type:
                         'first',
 
                     event_name:
-                        'dungeon_heal',
+                        'dungeon_chip_seller',
 
                     text:
-                        'You have had a tough journey, traveler. Rest here.',
+                        'I sell battle chips.',
                 }
             )
         }
 
 
-        // Chip seller.
+        // Optional flavor NPC.
         if (
-            hasFreeNode() &&
-            Math.random() <
-                LOBBY_CHIP_SELLER_CHANCE
-        ) {
-            addChipSeller()
-        }
-
-
-        // 50% chance of an atmospheric NPC.
-        if (
-            hasFreeNode() &&
             Math.random() < 0.5
         ) {
-            const atmosphericNode =
-                takeNode()
-
             addNpcToNode(
-                atmosphericNode,
+                lobbyNode,
                 {
                     asset_name:
                         randomChoice(
@@ -508,6 +462,7 @@ function addGeneratedNpcs(
             )
         }
 
+
         return
     }
 
@@ -516,12 +471,71 @@ function addGeneratedNpcs(
     // REGULAR DUNGEON ROOM
     // --------------------------------------------------------
 
+    let nextNpcNodeIndex = 0
+
+
+    function takeNode() {
+        if (
+            nextNpcNodeIndex >=
+            nodes.length
+        ) {
+            return null
+        }
+
+        const node =
+            nodes[
+                nextNpcNodeIndex
+            ]
+
+        nextNpcNodeIndex++
+
+        return node
+    }
+
+
+    // Gameplay NPC gets priority.
+    if (
+        Math.random() <
+        REGULAR_CHIP_SELLER_CHANCE
+    ) {
+        const sellerNode =
+            takeNode()
+
+        if (sellerNode) {
+            addNpcToNode(
+                sellerNode,
+                {
+                    asset_name:
+                        randomChoice(
+                            CHIP_SELLER_NPC_ASSETS
+                        ),
+
+                    dialogue_type:
+                        'first',
+
+                    event_name:
+                        'dungeon_chip_seller',
+
+                    text:
+                        'I sell battle chips.',
+                }
+            )
+        }
+    }
+
+
+    // Flavor NPCs use whatever nodes remain.
+    const remainingNodes =
+        nodes.length -
+        nextNpcNodeIndex
+
+
     const atmosphericCount =
         randomInt(
             0,
             Math.min(
                 2,
-                nodes.length
+                remainingNodes
             )
         )
 
@@ -555,15 +569,6 @@ function addGeneratedNpcs(
                     ),
             }
         )
-    }
-
-
-    if (
-        hasFreeNode() &&
-        Math.random() <
-            REGULAR_CHIP_SELLER_CHANCE
-    ) {
-        addChipSeller()
     }
 }
 
@@ -808,7 +813,7 @@ async function main() {
         root =
             createTreeWithEnoughLeaves(
                 requestedExitCount,
-                3
+                MAP_INTERNAL_DEPTH
             )
 
         actualExitCount =
@@ -848,7 +853,7 @@ async function main() {
     generator.maximumNodeDepth =
         roomType === ROOM_TYPE_LOBBY
             ? 0
-            : 3
+            : MAP_INTERNAL_DEPTH
 
     await generator.generateNetArea(
         root,

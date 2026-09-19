@@ -10,8 +10,8 @@ local next_run_id = 0
 -- ==============================================================
 
 -- Depth 0 is the root room.
--- Current test: depth 0 through depth 5.
-local TEST_MAX_DEPTH = 5
+-- Current test: depth 0 through depth 10.
+local TEST_MAX_DEPTH = 10
 local TEST_MIN_BRANCHES = 1
 local TEST_MAX_BRANCHES = 4
 local DUNGEON_POOL_SIZE = 5
@@ -207,16 +207,61 @@ end
 -- ==============================================================
 -- ROOM TYPE SELECTION
 -- ==============================================================
+local function get_dungeon_progression(
+    depth
+)
+    -- Area 0 through Area 3.
+    if depth <= 3 then
+        return "easy",
+            "easy"
+    end
 
-local function choose_child_room_type(parent_room)
-    -- Never generate two lobby rooms back-to-back.
-    if parent_room and parent_room.room_type == "lobby" then
+
+    -- Area 4 through Area 6.
+    if depth <= 6 then
+        return "medium",
+            "medium"
+    end
+
+
+    -- Area 7 through Area 9.
+    if depth <= 9 then
+        return "hard",
+            "hard"
+    end
+
+
+    -- Area 10 is boss territory, but uses the Hard
+    -- reward pool for BMDs and chip sellers.
+    return "boss",
+        "hard"
+end
+
+local function choose_child_room_type(
+    parent_room,
+    child_depth
+)
+    -- Area 10 is boss territory.
+    --
+    -- Never allow its cached layout to become a lobby.
+    if child_depth >= TEST_MAX_DEPTH then
         return "regular"
     end
+
+
+    -- Never generate two lobby rooms back-to-back.
+    if
+        parent_room and
+        parent_room.room_type == "lobby"
+    then
+        return "regular"
+    end
+
 
     if math.random() < LOBBY_ROOM_CHANCE then
         return "lobby"
     end
+
 
     return "regular"
 end
@@ -227,6 +272,11 @@ end
 
 local function generate_room(run_id, room_id, depth, room_type)
     room_type = room_type or "regular"
+    local difficulty,
+        reward_tier =
+        get_dungeon_progression(
+            depth
+        )
 
     local area_id = make_room_area_id(run_id, room_id)
     local exit_count = 0
@@ -305,6 +355,18 @@ local function generate_room(run_id, room_id, depth, room_type)
     Net.set_area_custom_property(area_id, "dungeon_depth", tostring(depth))
     Net.set_area_custom_property(area_id, "dungeon_exit_count", tostring(exit_count))
     Net.set_area_custom_property(area_id, "dungeon_room_type", room_type)
+
+    Net.set_area_custom_property(
+        area_id,
+        "dungeon_difficulty",
+        difficulty
+    )
+
+    Net.set_area_custom_property(
+        area_id,
+        "dungeon_reward_tier",
+        reward_tier
+    )
 
     -- Net.update_area() has already parsed the map. Removing this
     -- claimed file lets generator_server refill the missing slot.
@@ -621,9 +683,11 @@ Net:on("custom_warp", function(event)
 
             child_room_id = active_run.next_room_id
 
-            local child_room_type = choose_child_room_type(
-                current_room
-            )
+            local child_room_type =
+                choose_child_room_type(
+                    current_room,
+                    child_depth
+                )
 
             print(
                 "[dungeon_warps] unexplored branch: room " ..

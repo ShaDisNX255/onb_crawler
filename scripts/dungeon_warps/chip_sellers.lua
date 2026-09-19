@@ -8,6 +8,15 @@ local config =
         "scripts/dungeon_warps/chip_seller_config"
     )
 
+local ezmemory =
+    require(
+        "scripts/ezlibs-scripts/ezmemory"
+    )
+
+local crawler_loot_tiers =
+    require(
+        "scripts/ezlibs-scripts/crawler_loot_tiers"
+    )
 
 local chip_sellers = {}
 
@@ -169,8 +178,25 @@ local function get_price(
 end
 
 
-local function build_stock_pool()
+local function build_stock_pool(
+    area_id
+)
     local pool = {}
+
+    local reward_tier =
+        Net.get_area_custom_property(
+            area_id,
+            "dungeon_reward_tier"
+        )
+
+    if
+        reward_tier ~= "easy" and
+        reward_tier ~= "medium" and
+        reward_tier ~= "hard"
+    then
+        reward_tier =
+            "easy"
+    end
 
     for chip_key,
         chip_config
@@ -197,6 +223,13 @@ local function build_stock_pool()
                 "[chip_sellers] skipping chip without chip_seller source " ..
                 tostring(chip_key)
             )
+
+        elseif not crawler_loot_tiers.matches(
+            "chip_seller",
+            chip_key,
+            reward_tier
+        ) then
+            -- Chip belongs to another dungeon difficulty tier.
 
         elseif type(
             chip_config.option_name
@@ -252,7 +285,9 @@ local function create_stock(
 
 
     local pool =
-        build_stock_pool()
+        build_stock_pool(
+            area_id
+        )
 
     if #pool == 0 then
         print(
@@ -483,7 +518,7 @@ local function try_purchase(
     end
 
 
-    Net.set_player_money(
+    ezmemory.set_player_money(
         player_id,
         money - price
     )
