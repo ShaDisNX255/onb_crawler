@@ -5,27 +5,6 @@ local warp_history = {}
 local active_run = nil
 local next_run_id = 0
 
--- IMPORTANT:
--- Every top-level server script runs in its own Lua state.
--- This eznpcs instance owns the dynamically-created dungeon NPCs,
--- so this script must also forward interaction/tick/transfer events to it.
-local eznpcs = require('scripts/ezlibs-scripts/eznpcs/eznpcs')
-
--- dialogue_types.lua expects eznpcs to exist globally.
-_G.eznpcs = eznpcs
-
-local chip_sellers =
-    require(
-        "scripts/dungeon_warps/chip_sellers"
-    )
-
-local crawler_whitelist =
-    require(
-        "scripts/ezlibs-scripts/crawler_whitelist"
-    )
-
-require('scripts/events/eznpcs_events')
-
 -- ==============================================================
 -- TEST CONFIGURATION
 -- ==============================================================
@@ -327,21 +306,6 @@ local function generate_room(run_id, room_id, depth, room_type)
     Net.set_area_custom_property(area_id, "dungeon_exit_count", tostring(exit_count))
     Net.set_area_custom_property(area_id, "dungeon_room_type", room_type)
 
-    -- The area did not exist during ezlibs startup, so this Lua
-    -- state explicitly scans the new map's NPC placeholders.
-    local npc_ok, npc_err = pcall(
-        eznpcs.add_npcs_to_area,
-        area_id
-    )
-
-    if not npc_ok then
-        print(
-            "[dungeon_warps] failed adding NPCs to " ..
-            area_id .. ": " ..
-            tostring(npc_err)
-        )
-    end
-
     -- Net.update_area() has already parsed the map. Removing this
     -- claimed file lets generator_server refill the missing slot.
     os.remove(layout_path)
@@ -440,10 +404,6 @@ local function destroy_active_run()
         return
     end
 
-    chip_sellers.clear_run(
-        run.run_id
-    )
-
     -- Clear this before removing areas so nobody new can
     -- accidentally join a run being destroyed.
     active_run = nil
@@ -480,26 +440,8 @@ print("[dungeon_warps] Started!")
 -- ==============================================================
 -- EZNPCS EVENT FORWARDING
 -- ==============================================================
---
--- The server creates a separate Lua VM for every top-level script.
--- The normal ezlibs main.lua therefore cannot see the NPC table
--- owned by this dungeon_warps copy of eznpcs.
---
--- Forward these events here so dynamically-generated dungeon NPCs
--- are handled by the same eznpcs instance that created them.
--- ==============================================================
-
-Net:on("actor_interaction", function(event)
-    eznpcs.handle_actor_interaction(
-        event.player_id,
-        event.actor_id
-    )
-end)
 
 Net:on("tick", function(event)
-    eznpcs.on_tick(
-        event.delta_time
-    )
 
     if
         active_run and
@@ -567,24 +509,6 @@ Net:on("custom_warp", function(event)
             return
         end
 
-        local run_ready,
-            run_reason =
-            crawler_whitelist.begin_run_for_player(
-                player_id,
-                run.run_id
-            )
-
-        if not run_ready then
-            print(
-                "[dungeon_warps] failed initializing crawler run for " ..
-                tostring(player_id) ..
-                ": " ..
-                tostring(run_reason)
-            )
-
-            return
-        end
-
         push_history(
             player_id,
             area_id,
@@ -602,58 +526,9 @@ Net:on("custom_warp", function(event)
             root_room.room_type
         )
 
-        local transferred =
-            transfer_to_entry(
-                player_id,
-                root_room.area_id
-            )
-
-        if not transferred then
-            return
-        end
-
-        -- ------------------------------------------------------
-        -- RECONNECT / RUN CHIP RESTORE
-        -- ------------------------------------------------------
-        --
-        -- player_area_transfer can occur before every script sees
-        -- the newly-transferred dungeon area as the player's
-        -- current area.
-        --
-        -- Wait briefly after the transfer, then rebuild the
-        -- crawler whitelist and resend every chip already earned
-        -- during this active run.
-        --
-        -- The crawler whitelist keeps its own per-connection
-        -- hydration guard, so normal room-to-room movement will
-        -- not repeatedly resend these rewards.
-        -- ------------------------------------------------------
-
-        Async.sleep(
-            0.5
-        ).and_then(
-            function()
-                if not Net.is_player(
-                    player_id
-                ) then
-                    return
-                end
-
-                local restored,
-                    restore_reason =
-                    crawler_whitelist.restore_unlocked_cards_for_current_run(
-                        player_id
-                    )
-
-                if restored == false then
-                    print(
-                        "[dungeon_warps] crawler chip restore skipped/failed for " ..
-                        tostring(player_id) ..
-                        ": " ..
-                        tostring(restore_reason)
-                    )
-                end
-            end
+        transfer_to_entry(
+            player_id,
+            root_room.area_id
         )
 
         return
@@ -871,9 +746,6 @@ end)
 -- ==============================================================
 
 Net:on("player_area_transfer", function(event)
-    -- Clear any conversation state owned by this eznpcs instance.
-    eznpcs.handle_player_transfer(event.player_id)
-
     -- Moving from one dungeon room to another leaves at least one
     -- player in active_run.areas. Returning the final player to the
     -- overworld destroys the shared runtime dungeon.
@@ -886,10 +758,6 @@ end)
 
 Net:on("player_disconnect", function(event)
     local player_id = event.player_id
-
-    -- Clean up conversation/exclusive-NPC state owned by this
-    -- dungeon_warps eznpcs instance.
-    eznpcs.handle_player_disconnect(player_id)
 
     warp_history[player_id] = nil
 
