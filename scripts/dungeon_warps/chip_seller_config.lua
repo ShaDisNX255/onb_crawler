@@ -5,7 +5,7 @@ local config = {}
 -- ============================================================
 
 -- When true, every seller chip costs debug_price.
-config.debug_cheap_prices = true
+config.debug_cheap_prices = false
 config.debug_price = 50
 
 
