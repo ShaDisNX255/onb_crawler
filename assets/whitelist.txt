@@ -1,4 +1,24 @@
-............................class BlockPackageManager...........................
+.........................class BlockPackageManager........................
+d7768b6a31a8290926606abec832acd7 Buster.Attack1.blue.bn6.Unified.Library
+a178c55638d2096008db78855dc6525c Buster.Attack1.blue.bn62.Unified.Library
+fbc9d427dfc63984a73f619ed74c458f Buster.Attack1.pink.bn6.Unified.Library
+bf2961a1841928ef19b569d929189d6f Buster.Attack1.pink.bn62.Unified.Library
+dd88d206fc128ed2a163dcd9be6ab27b Buster.Attack1.red.bn62.Unified.Library
+d2993882606cdd9500d0a601074327e2 Buster.AttackMAX.red.bn62.Unified.Library
+2bee9cbb1a172469b1a90abded4be5e8 Buster.Charge1.Blue.bn62.Unified.Library
+93a856566ec672be23faeaafa64f9342 Buster.Charge1.pink.bn6.Unified.Library
+dbd36a2d7c371d37e1874370d71e3b72 Buster.Charge1.pink.bn62.Unified.Library
+fcb0bd5392845f263cf41e33c141120e Buster.Charge1.white.bn6.Unified.Library
+a4359d227c8bdaab9bba769738a56498 Buster.Charge1.white.bn62.Unified.Library
+118d6f0ee3328ca22b165989cdafe406 Buster.ChargeMAX.Blue.bn6.Unified.Library
+9bd63b9d2d1cb1ecab85887455bd9a97 com.OFC.block.EXE6-001-SuperArmor
+dc7abc04eb5b334ee784488e553a3224 com.OFC.block.EXE6-008-Shield
+614ae5b5c35a3a0f442a483aea36f588 com.OFC.block.EXE6-009-Reflect
+3d9ca55da2d4e50c664340ad2fa2cdcb com.OFC.block.EXE6-010-KawarimiMagic
+f8b32b71b8c5cb58411b31a077e79cde com.OFC.block.EXE6-011-FloatShoes
+889b16066ddef90bbd67bcfe09412fb8 com.OFC.block.EXE6-012-AirShoes
+2e6bd07f5f9614f8fce403bdea369392 com.OFC.block.EXE6-013-UnderShirt
+388a61e927aa0b9b99048fa3306e3ac1 com.alrysc.block.fistbarrier
 
 ...........................class PlayerPackageManager...........................
 12c863bda35bfacff1e5c96dbbcffad7 11.Cinnamon.Unified.Library
@@ -198,3 +218,5 @@ da73c29944e232ab6b1492ed6e370269 rune.legacy.katana2
 64096ad2bb86ca45da23a7bccfdc5f46 rune.legacy.katana3
 1b6d8edd7874e1e9b74dfde38323480d rune.legacy.typhoon
 d590f55380924e4df02cb01c254c7eaa snowcan.eclipsedzenith
+a73f14543a6cfa0b42c239a8a6921d0a com.darkware.navi.yamatoman
+16e6511b445a056119d589c472896b34 com.shadis.navi.Luigi
