@@ -948,16 +948,16 @@ async function main() {
                     'Custom',
 
                 'Background Animation':
-                    '/server/assets/backgrounds/02-nettonohp.animation',
+                    '/server/assets/backgrounds/08b-underground.animation',
 
                 'Background Texture':
-                    '/server/assets/backgrounds/02-nettonohp.png',
+                    '/server/assets/backgrounds/08b-underground.png',
 
                 'Background Vel X':
-                    0.115,
+                    0.000,
 
                 'Background Vel Y':
-                    0.065,
+                    0.000,
             }
         )
     }
