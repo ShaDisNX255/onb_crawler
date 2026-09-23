@@ -19,6 +19,9 @@ f8b32b71b8c5cb58411b31a077e79cde com.OFC.block.EXE6-011-FloatShoes
 889b16066ddef90bbd67bcfe09412fb8 com.OFC.block.EXE6-012-AirShoes
 2e6bd07f5f9614f8fce403bdea369392 com.OFC.block.EXE6-013-UnderShirt
 388a61e927aa0b9b99048fa3306e3ac1 com.alrysc.block.fistbarrier
+cd58c2e8678ae47178b5639d113709e4 HP+50.Blue.Unified.Library
+fc4f7d2a41c782a209816ce6b9a4257a HP+50.Pink.Unified.Library
+5f22a948b1e825a1470892c27e833f74 HP+50.White.Unified.Library
 
 ...........................class PlayerPackageManager...........................
 12c863bda35bfacff1e5c96dbbcffad7 11.Cinnamon.Unified.Library

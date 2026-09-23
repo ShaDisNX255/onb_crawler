@@ -1,0 +1,19 @@
+{
+    "listservers":{
+        "main":"https://onb.keristero.com/server_list/"
+    },
+    "advertisements":[
+        {
+            "unique_server_id":"ONBMysteryDungeon",
+            "name":"ONB Mystery Dungeon",
+            "description":"A rogue-like server that randomly generates maps, viruses and boss rooms. Navigate deeper with the battle chips you collect with increasingly difficult encounters. Be sure to downlod the starter pack!",
+            "tags":["random-encounters", "rogue-like", "battle-chip collector" ],
+            "address":"shadis.tplinkdns.com:7777",
+            "data":"",
+            "icon":"advertisement.png",
+            "color":"rgb(70,0,92)",
+            "advertise_map":true,
+            "default_area_id":"default"
+        }
+    ]
+}

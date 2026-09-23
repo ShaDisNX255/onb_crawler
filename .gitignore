@@ -1,3 +1,4 @@
+scripts/advertise_server/data/secret_keys.json
 server.pid
 generator.pid
 runtime/*
