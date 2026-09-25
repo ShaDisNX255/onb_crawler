@@ -1,6 +1,6 @@
 {
     "listservers":{
-        "main":"https://onb.keristero.com/server_list/"
+        "main":"http://127.0.0.1:5055/server_list/"
     },
     "advertisements":[
         {
@@ -11,7 +11,7 @@
             "address":"shadis.tplinkdns.com:7777",
             "data":"",
             "icon":"advertisement.png",
-            "color":"rgb(70,0,92)",
+            "color":"rgb(255,145,0)",
             "advertise_map":true,
             "default_area_id":"default"
         }

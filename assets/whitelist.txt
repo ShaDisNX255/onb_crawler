@@ -223,3 +223,4 @@ da73c29944e232ab6b1492ed6e370269 rune.legacy.katana2
 d590f55380924e4df02cb01c254c7eaa snowcan.eclipsedzenith
 a73f14543a6cfa0b42c239a8a6921d0a com.darkware.navi.yamatoman
 16e6511b445a056119d589c472896b34 com.shadis.navi.Luigi
+8ae213fea62f2b2ba2c1a340ea145cd5 com.Ota&D3str0y3d255&darkware&jk.Slur

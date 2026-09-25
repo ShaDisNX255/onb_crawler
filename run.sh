@@ -15,10 +15,72 @@ GENERATOR_PIDFILE="$DIR/generator.pid"
 GENERATOR="$DIR/tools/dungeon-generator/generator_server.js"
 READY_FILE="$DIR/runtime/dungeon_pool/READY"
 
+RELAY="$DIR/scripts/advertise_server/relay.py"
+RELAYLOG="$DIR/advertise_relay.log"
+RELAYPID="$DIR/advertise_relay.pid"
+
 have_pid() {
     local pid="${1:-}"
     [[ -n "$pid" ]] &&
         kill -0 "$pid" 2>/dev/null
+}
+
+start_relay() {
+    if [[ -f "$RELAYPID" ]] && have_pid "$(cat "$RELAYPID" 2>/dev/null || true)"; then
+        echo "Advertisement relay already running (pid $(cat "$RELAYPID"))."
+        return 0
+    fi
+
+    if [[ ! -f "$RELAY" ]]; then
+        echo "Advertisement relay not found: $RELAY"
+        return 0
+    fi
+
+    nohup python3 -u "$RELAY" > "$RELAYLOG" 2>&1 &
+    echo $! > "$RELAYPID"
+
+    echo "Advertisement relay started (pid $(cat "$RELAYPID"))."
+}
+
+stop_relay() {
+    if [[ ! -f "$RELAYPID" ]]; then
+        return 0
+    fi
+
+    local rpid
+    rpid="$(cat "$RELAYPID" 2>/dev/null || true)"
+
+    if have_pid "$rpid"; then
+        kill -TERM "$rpid" 2>/dev/null || true
+
+        for _ in {1..10}; do
+            have_pid "$rpid" || break
+            sleep 0.2
+        done
+
+        if have_pid "$rpid"; then
+            kill -KILL "$rpid" 2>/dev/null || true
+        fi
+
+        echo "Advertisement relay stopped."
+    fi
+
+    rm -f "$RELAYPID"
+}
+
+status_relay() {
+    if [[ -f "$RELAYPID" ]]; then
+        local rpid
+        rpid="$(cat "$RELAYPID" 2>/dev/null || true)"
+
+        if have_pid "$rpid"; then
+            echo "Advertisement relay: running (pid $rpid)"
+        else
+            echo "Advertisement relay: stopped (stale pidfile: $rpid)"
+        fi
+    else
+        echo "Advertisement relay: stopped"
+    fi
 }
 
 stop_process_group() {
@@ -114,6 +176,7 @@ stop_generator() {
 }
 
 start_server() {
+    start_relay
     if [[ -f "$SERVER_PIDFILE" ]]; then
         local existing_pid
 
@@ -193,6 +256,7 @@ start_server() {
 }
 
 stop_server() {
+    stop_relay
     if [[ -f "$SERVER_PIDFILE" ]]; then
         local pid
 
@@ -250,6 +314,7 @@ status_server() {
     else
         echo "Generator: stopped"
     fi
+    status_relay
 }
 
 

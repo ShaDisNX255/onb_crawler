@@ -96,7 +96,7 @@ const BLUE_CHIP_MAP_CHANCE = 1.0
 // 10% of regular maps have one Red Mystery Data candidate.
 // Since ezmystery may hide that candidate, the actual chance of
 // finding an HPMem is lower than 10%.
-const RED_HPMEM_MAP_CHANCE = 0.8
+const RED_HPMEM_MAP_CHANCE = 1.0
 
 const GREEN_MONEY_MIN = 100
 const GREEN_MONEY_MAX = 500
@@ -909,7 +909,7 @@ async function main() {
             exportProperties,
             {
                 'Mystery Data Minimum':
-                    0,
+                    3,
 
                 'Mystery Data Maximum':
                     MYSTERY_DATA_CANDIDATES,
