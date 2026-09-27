@@ -190,6 +190,21 @@ class TiledTMXExporter {
             }
         }
 
+        // Runtime-only Core Dump Mystery Data.
+        //
+        // No yellow Mystery Data is placed during generation, but every
+        // crawler map needs the tileset available so Lua can create one
+        // dynamically when a player is deleted.
+        const coreDumpGID = this.AddTileset(
+            8,
+            '../assets/ezlibs-assets/ezmystery/YellowMysteryData.tsx'
+        )
+
+        this.AddProperty(
+            'crawler_core_dump_gid',
+            coreDumpGID
+        )
+
         //Create properties
         for (let propertyName in this.props) {
             let propertyValue = this.props[propertyName]
