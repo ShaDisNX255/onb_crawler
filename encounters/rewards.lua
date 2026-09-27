@@ -43,6 +43,7 @@ return {
         easy = { low = 50, mid = 100, high = 200, },
         medium = { low = 100, mid = 250, high = 500, },
         hard = { low = 250, mid = 500, high = 1000, },
+        boss = { low = 500, mid = 2000, high = 5000, },
     },
 
     -- ========================================================
@@ -245,10 +246,10 @@ return {
         OldBurner = { [1] = reward("medium", "hellsburner3"), },
 
         -- ====================================================
-        -- CHUUTON
+        -- RATTY
         -- ====================================================
 
-        Chuuton = {
+        Ratty = {
             [1] = reward("easy", "ratton1"),
             [2] = reward("medium", "ratton2"),
             [3] = reward("hard", "ratton3"),
@@ -449,19 +450,19 @@ return {
         --
         -- They use the Hard money table.
 
-        Forte = { [1] = reward("hard"), },
-        Gregar = { [1] = reward("hard"), },
-        GregarBeast = { [1] = reward("hard"), },
-        Duo = { [1] = reward("hard"), },
-        BurnerMan = { [1] = reward("hard"), },
-        Colonel = { [1] = reward("hard"), },
-        ElementMan = { [1] = reward("hard"), },
-        StarMan = { [1] = reward("hard"), },
-        Proto = { [1] = reward("hard"), },
-        ShadowMan = { [1] = reward("hard"), },
-        HatMan = { [1] = reward("hard"), },
-        QuickMan = { [1] = reward("hard"), },
-        ShadeMan = { [1] = reward("hard"), },
-        Noir = { [1] = reward("hard"), },
+        Forte = { [1] = reward("boss"), },
+        Gregar = { [1] = reward("boss"), },
+        GregarBeast = { [3] = reward("boss"), },
+        Duo = { [1] = reward("boss"), },
+        BurnerMan = { [3] = reward("boss"), },
+        Colonel = { [3] = reward("boss"), },
+        ElementMan = { [1] = reward("boss"), },
+        StarMan = { [4] = reward("boss"), },
+        Proto = { [1] = reward("boss"), },
+        ShadowMan = { [4] = reward("boss"), },
+        HatMan = { [4] = reward("boss"), },
+        QuickMan = { [4] = reward("boss"), },
+        ShadeMan = { [1] = reward("boss"), },
+        Noir = { [1] = reward("boss"), },
     },
 }

@@ -174,7 +174,20 @@ local function get_price(
         return nil
     end
 
-    return chip_config.price
+    local price =
+        chip_config.price *
+        (config.price_scale or 1.0)
+
+    -- Round to the nearest 50z.
+    price =
+        math.floor(
+            price / 50 + 0.5
+        ) * 50
+
+    return math.max(
+        50,
+        price
+    )
 end
 
 

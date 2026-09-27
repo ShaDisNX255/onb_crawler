@@ -53,6 +53,12 @@ config.max_option_label_length = 8
 -- Others are balancing estimates placed near comparable chips.
 -- ============================================================
 
+-- Global multiplier applied to all seller chip prices.
+-- 1.00 = original prices
+-- 0.50 = half price
+-- 0.40 = 40% of original price
+config.price_scale = 0.40
+
 config.chips = {
     aquasword = {
         price = 6000,
