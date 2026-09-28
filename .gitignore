@@ -1,3 +1,4 @@
+scripts/ezlibs-scripts/*
 advertise_relay.pid
 scripts/advertise_server/data/secret_keys.json
 server.pid
