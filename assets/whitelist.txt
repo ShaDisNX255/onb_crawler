@@ -19,9 +19,9 @@ f8b32b71b8c5cb58411b31a077e79cde com.OFC.block.EXE6-011-FloatShoes
 889b16066ddef90bbd67bcfe09412fb8 com.OFC.block.EXE6-012-AirShoes
 2e6bd07f5f9614f8fce403bdea369392 com.OFC.block.EXE6-013-UnderShirt
 388a61e927aa0b9b99048fa3306e3ac1 com.alrysc.block.fistbarrier
-cd58c2e8678ae47178b5639d113709e4 HP+50.Blue.Unified.Library
-fc4f7d2a41c782a209816ce6b9a4257a HP+50.Pink.Unified.Library
-5f22a948b1e825a1470892c27e833f74 HP+50.White.Unified.Library
+8f6a764bea6f3bcdbdfb6ededd41a6dc HP+100.Blue.Unified.Library
+d74793eacf3b07b1d804a758b74110b1 HP+100.Pink.Unified.Library
+8cbad29a2d3d04fcc301a3c3bbf29dd0 HP+100.White.Unified.Library
 
 ...........................class PlayerPackageManager...........................
 12c863bda35bfacff1e5c96dbbcffad7 11.Cinnamon.Unified.Library
@@ -56,6 +56,7 @@ f0204ef3d0c1ab0437ac4da8c4754d39 com.drawcie.navi.darkmegaPVP
 066990bfc9d5b2a397bb607bbf76b30d com.scilabs.cossack.player.fortepvp.basic
 d4a3031ff664c1ec351902c7dc796b96 com.shadis.navi.adventure.Luigi.basic
 08ec366a2374c067da789b744ac92540 com.silva.navi.zarymura.adventure
+c88d1572a2e29b6ddcbd6a04a5b40104 com.silva&tressa.navi.neozarypvp
 
 ............................class CardPackageManager............................
 7d7e288735a71b78449298b11268eb87 com.Dawn.k1rbyat1na.card.EXE6-088-CrackShoot
