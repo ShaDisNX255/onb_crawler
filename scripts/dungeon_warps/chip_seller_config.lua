@@ -254,6 +254,18 @@ config.chips = {
         price = 5800,
         option_name = "Vulcan3",
     },
+    barrier100 = {
+        price = 3800,
+        option_name = "Barrier100",
+    },
+    barrier200 = {
+        price = 11200,
+        option_name = "Barrier200",
+    },
+    stelrvng = {
+        price = 11200,
+        option_name = "StelRvng",
+    },
 }
 
 return config

@@ -259,9 +259,9 @@ return {
         -- CURZE FAMILY
         -- ====================================================
 
-        Curze = { [1] = reward("medium"), },
-        Curzena = { [1] = reward("hard"), },
-        Curzed = { [1] = reward("hard"), },
+        Curze = { [1] = reward("medium", "crsshld1"), },
+        Curzena = { [1] = reward("hard", "crsshld2"), },
+        Curzed = { [1] = reward("hard", "crsshld3"), },
 
         -- ====================================================
         -- DHARMA FAMILY
@@ -280,12 +280,14 @@ return {
         KillFlower = { [1] = reward("hard"), },
 
         -- ====================================================
-        -- GARUE FAMILY
+        -- SPIKEY FAMILY
         -- ====================================================
 
-        Garue = { [1] = reward("easy"), },
-        Garuebar = { [1] = reward("easy"), },
-        Garuedan = { [1] = reward("medium"), },
+        Spikey = {
+            [1] = reward("easy", "neohetr1"),
+            [2] = reward("easy", "neohetr2"),
+            [3] = reward("medium", "neohetr3"),
+        },
 
         -- ====================================================
         -- EBIRON FAMILY
@@ -371,7 +373,7 @@ return {
         -- HEEL NAVI
         -- ====================================================
 
-        HeelNavi = { [1] = reward("easy"), [2] = reward("medium"), [3] = reward("hard"), },
+        HeelNavi = { [1] = reward("boss"), [2] = reward("boss"), [3] = reward("boss"), },
 
         -- ====================================================
         -- HAUNTED CANDLE
@@ -400,7 +402,7 @@ return {
         Volgear = {
             [1] = reward("easy", "flameline1"),
             [2] = reward("medium", "flameline2"),
-            [3] = reward("hard"),
+            [3] = reward("hard", "flameline3"),
         },
 
         -- ====================================================
