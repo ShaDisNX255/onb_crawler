@@ -57,6 +57,7 @@ f0204ef3d0c1ab0437ac4da8c4754d39 com.drawcie.navi.darkmegaPVP
 d4a3031ff664c1ec351902c7dc796b96 com.shadis.navi.adventure.Luigi.basic
 08ec366a2374c067da789b744ac92540 com.silva.navi.zarymura.adventure
 c88d1572a2e29b6ddcbd6a04a5b40104 com.silva&tressa.navi.neozarypvp
+d9714759e68f13b49156780988460798 com.discord.Kimonia-Rules#1667.player.Sil
 
 ............................class CardPackageManager............................
 7d7e288735a71b78449298b11268eb87 com.Dawn.k1rbyat1na.card.EXE6-088-CrackShoot
