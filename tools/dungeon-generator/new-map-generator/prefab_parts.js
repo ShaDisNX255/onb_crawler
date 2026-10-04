@@ -302,17 +302,15 @@ let parts = [
         ],
     },
     {
-        name: '3x3 with wall_feature_left',
+        name: '4x3 with wall_feature_left',
         width: 4,
         length: 3,
         height: 1,
-        matrix: [
-            [
-                [2, 2, 2],
-                [2, 2, 2],
-                [2, 2, 2],
-            ],
-        ],
+        matrix: [[
+            [2, 2, 2, 2],
+            [2, 2, 2, 2],
+            [2, 2, 2, 2],
+        ]],
         ground_features: [
             {
                 x: 1,
@@ -341,17 +339,16 @@ let parts = [
         ],
     },
     {
-        name: '3x3 with wall_feature_right',
+        name: '3x4 with wall_feature_right',
         width: 3,
         length: 4,
         height: 1,
-        matrix: [
-            [
-                [2, 2, 2],
-                [2, 2, 2],
-                [2, 2, 2],
-            ],
-        ],
+        matrix: [[
+            [2, 2, 2],
+            [2, 2, 2],
+            [2, 2, 2],
+            [2, 2, 2],
+        ]],
         ground_features: [
             {
                 x: 1,
