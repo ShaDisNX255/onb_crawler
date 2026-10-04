@@ -5,6 +5,8 @@ local warp_history = {}
 local active_run = nil
 local next_run_id = 0
 
+local boss_quest_manager = require("scripts/dungeon_warps/boss_quests")
+local spawntest = require("scripts/dungeon_warps/alpha_spawn_test")
 -- ==============================================================
 -- TEST CONFIGURATION
 -- ==============================================================
@@ -423,7 +425,14 @@ local function create_active_run()
         areas = {
             root_room.area_id,
         },
+        boss_quests = boss_quest_manager.create_run_state(run_id),
     }
+
+    boss_quest_manager.register_area(
+        active_run.boss_quests,
+        root_room.area_id,
+        root_room.depth
+    )
 
     print("[dungeon_warps] shared dungeon run ready: " .. run_id)
     return active_run
@@ -465,6 +474,10 @@ local function destroy_active_run()
     if not run then
         return
     end
+
+    boss_quest_manager.destroy_run_state(
+        run.boss_quests
+    )
 
     -- Clear this before removing areas so nobody new can
     -- accidentally join a run being destroyed.
@@ -717,6 +730,11 @@ Net:on("custom_warp", function(event)
             active_run.rooms[child_room_id] = child_room
             current_room.children[branch_id] = child_room_id
             active_run.areas[#active_run.areas + 1] = child_room.area_id
+            boss_quest_manager.register_area(
+                active_run.boss_quests,
+                child_room.area_id,
+                child_room.depth
+            )
 
             print(
                 "[dungeon_warps] room " ..

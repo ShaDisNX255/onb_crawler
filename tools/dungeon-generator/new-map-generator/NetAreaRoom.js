@@ -286,6 +286,7 @@ class NetAreaRoom {
             green_mystery_data: {},
             blue_mystery_data: {},
             red_mystery_data: {},
+            boss_markers: {},
         }
         this.nextGroundFeatureIndex = 0
         this.nextWallFeatureIndex = 0

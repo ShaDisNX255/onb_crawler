@@ -101,6 +101,8 @@ const RED_HPMEM_MAP_CHANCE = 1.0
 const GREEN_MONEY_MIN = 100
 const GREEN_MONEY_MAX = 500
 
+const BOSS_MARKERS_PER_REGULAR_MAP = 3
+
 // ============================================================
 // GENERAL HELPERS
 // ============================================================
@@ -695,6 +697,32 @@ function addGeneratedMysteryData(
     }
 }
 
+function addGeneratedBossMarkers(root, roomType) {
+    if (roomType !== ROOM_TYPE_REGULAR) {
+        return
+    }
+
+    const nodes = shuffle(collectNodes(root))
+
+    if (nodes.length === 0) {
+        return
+    }
+
+    for (let i = 0; i < BOSS_MARKERS_PER_REGULAR_MAP; i++) {
+        const node = nodes[i % nodes.length]
+
+        if (!node.features) {
+            node.features = {}
+        }
+
+        if (!node.features.boss_markers) {
+            node.features.boss_markers = []
+        }
+
+        node.features.boss_markers.push({})
+    }
+}
+
 // ============================================================
 // MAIN
 // ============================================================
@@ -837,15 +865,9 @@ async function main() {
         actualExitCount
     )
 
-    addGeneratedNpcs(
-        root,
-        roomType
-    )
-
-    addGeneratedMysteryData(
-        root,
-        roomType
-    )
+    addGeneratedBossMarkers(root, roomType)
+    addGeneratedNpcs(root, roomType)
+    addGeneratedMysteryData(root, roomType)
 
     const generator =
         new NetAreaGenerator()

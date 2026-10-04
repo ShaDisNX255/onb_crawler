@@ -36,7 +36,6 @@ a170a20711eefc0a7484fc36d6006ff1 51.Kit.Unified.Library
 01fbcb5c52f090eb9901b3767724c55f 52.Kunoichi.Unified.Library
 f1d1929f6b851283cd3735eedf2c12bb 61.Mannerek.Unified.Library
 57a6aeb05a682f5218ca2a87228f4384 62.SlashMan.Unified.Library
-01f6afd238a25946e2f6c9e8bd2c1139 71.Groundman.Unified.Library
 dc14e37fb73403bb33c9df8f67cd513a 72.JunkMan.Unified.Library
 c1a928666b96f5faf7928418a57cfe32 81.Vile.Unified.Library
 5816e7909a9839fe541b5f110e256d31 82.Presto.Unified.Library
@@ -56,7 +55,7 @@ f0204ef3d0c1ab0437ac4da8c4754d39 com.drawcie.navi.darkmegaPVP
 066990bfc9d5b2a397bb607bbf76b30d com.scilabs.cossack.player.fortepvp.basic
 d4a3031ff664c1ec351902c7dc796b96 com.shadis.navi.adventure.Luigi.basic
 08ec366a2374c067da789b744ac92540 com.silva.navi.zarymura.adventure
-c88d1572a2e29b6ddcbd6a04a5b40104 com.silva&tressa.navi.neozarypvp
+eefece8d390ae4b2828c4017c294194e com.silva&tressa.navi.neozarypvp
 d9714759e68f13b49156780988460798 com.discord.Kimonia-Rules#1667.player.Sil
 
 ............................class CardPackageManager............................

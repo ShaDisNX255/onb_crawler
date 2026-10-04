@@ -340,6 +340,50 @@ class RedMysteryDataFeature extends Feature {
     }
 }
 
+class BossMarkerFeature extends Feature {
+    constructor(
+        x,
+        y,
+        z,
+        feature,
+        properties
+    ) {
+        super(
+            x,
+            y,
+            z,
+            properties
+        )
+
+        this.type = 'BossMarker'
+
+        // Ground feature coordinates represent the tile origin.
+        // Match NPC/Mystery Data placement by moving the marker
+        // to the center of the usable tile.
+        this.x_spawn_offset = 16
+        this.y_spawn_offset = 16
+
+        this.width = 0
+        this.height = 0
+    }
+
+    async onExport({
+        newObject,
+    }) {
+        // BossMarkers are Tiled point objects rather than
+        // visible tile objects.
+        delete newObject['@gid']
+        delete newObject['@width']
+        delete newObject['@height']
+        delete newObject['@visible']
+
+        newObject['@name'] =
+            'BossMarker'
+
+        newObject.point = {}
+    }
+}
+
 class ImageFeature extends Feature {
     static tsxPath = `../assets/shared/objects/wall_feature.tsx`
     static tsxTileCount = 2
@@ -399,6 +443,11 @@ let featureCategories = {
             extraRequirements: 0,
             className: RedMysteryDataFeature,
         },
+        boss_markers: {
+            scrapedName: 'boss_markers',
+            extraRequirements: 0,
+            className: BossMarkerFeature,
+        },
         home_warps: {
             scrapedName: 'home_warps',
             extraRequirements: 0,
@@ -453,4 +502,5 @@ module.exports = {
     GreenMysteryDataFeature,
     BlueMysteryDataFeature,
     RedMysteryDataFeature,
+    BossMarkerFeature,
 }

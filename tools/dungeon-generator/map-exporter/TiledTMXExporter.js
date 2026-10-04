@@ -181,11 +181,19 @@ class TiledTMXExporter {
             }
 
             let featureCategory = featureCategories[featureCategoryName]
+
             for (let featureName in featureCategory) {
-                let feature = featureCategory[featureName]
-                let featureClass = feature.className
-                let tsxTileCount = featureClass.tsxTileCount
-                let tilesetGID = this.AddTileset(tsxTileCount, featureClass.tsxPath)
+                let featureClass = featureCategory[featureName].className
+
+                if (!featureClass.tsxPath || !featureClass.tsxTileCount) {
+                    continue
+                }
+
+                let tilesetGID = this.AddTileset(
+                    featureClass.tsxTileCount,
+                    featureClass.tsxPath
+                )
+
                 featureClass.tilesetGID = tilesetGID
             }
         }
@@ -203,6 +211,41 @@ class TiledTMXExporter {
         this.AddProperty(
             'crawler_core_dump_gid',
             coreDumpGID
+        )
+
+        const tetraCodeGID = this.AddTileset(
+            4,
+            '../assets/shared/objects/TetraCode.tsx'
+        )
+
+        this.AddProperty(
+            'crawler_tetra_code_gid',
+            tetraCodeGID
+        )
+
+        const alphaGID = this.AddTileset(
+            6,
+            '../assets/shared/objects/AlphaAnimated.tsx'
+        )
+
+        this.AddProperty(
+            'crawler_alpha_gid',
+            alphaGID
+        )
+
+        const bugFragGID = this.AddTileset(
+            1,
+            '../assets/shared/objects/frag.tsx'
+        )
+        this.AddProperty('crawler_bugfrag_gid', bugFragGID)
+
+        const bugFragTraderGID = this.AddTileset(
+            1,
+            '../assets/shared/objects/bugfrag_trader.tsx'
+        )
+        this.AddProperty(
+            'crawler_bugfrag_trader_gid',
+            bugFragTraderGID
         )
 
         //Create properties
