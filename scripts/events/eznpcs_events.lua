@@ -17,6 +17,11 @@ local ezencounters =
 local crawler_config =
     require("scripts/ezlibs-scripts/crawler_encounter_config")
 
+local boss_runtime =
+    require(
+        "scripts/events/crawler_boss_runtime"
+    )
+
 local BUGFRAG_GET_SFX =
     "/server/assets/ezlibs-assets/sfx/item_get.ogg"
 
@@ -125,70 +130,8 @@ eznpcs.add_event(
     dungeon_chip_seller
 )
 
-local bass_battling = {}
-
-local dungeon_bass_boss = {
-    name = "dungeon_bass_boss",
-
-    action = function(npc, player_id, dialogue)
-        return async(function()
-            local area_id = Net.get_player_area(player_id)
-
-            if bass_battling[player_id] or
-                Net.is_player_battling(player_id) or
-                ezmemory.object_is_hidden_from_player(
-                    player_id,
-                    area_id,
-                    dialogue.id
-                )
-            then
-                return
-            end
-
-            bass_battling[player_id] = true
-
-            local stats = await(ezencounters.begin_encounter(
-                player_id,
-                {
-                    name = "CrawlerBass_" ..
-                        tostring(math.random(1000000)),
-                    path = crawler_config.package_paths.boss,
-                    enemies = {
-                        { name = "Forte", rank = 1 },
-                    },
-                    positions = {
-                        { 0,0,0,0,0,0 },
-                        { 0,0,0,0,1,0 },
-                        { 0,0,0,0,0,0 },
-                    },
-                    _crawler_reward_tier = "hard",
-                    _crawler_boss = true,
-                },
-                dialogue
-            ))
-
-            bass_battling[player_id] = nil
-
-            if stats and tonumber(stats.reason) == 1 then
-                ezmemory.hide_object_from_player(
-                    player_id,
-                    area_id,
-                    dialogue.id
-                )
-
-                if npc.bot_id then
-                    Net.exclude_actor_for_player(
-                        player_id,
-                        npc.bot_id
-                    )
-                end
-            end
-        end)
-    end,
-}
-
 eznpcs.add_event(
-    dungeon_bass_boss
+    boss_runtime.event
 )
 
 -- ============================================================
@@ -268,45 +211,6 @@ local function scan_dungeon_area(
     )
 end
 
-local function apply_bass_visibility(
-    player_id,
-    area_id
-)
-    for _, object_id in ipairs(
-        Net.list_objects(area_id)
-    ) do
-        local object =
-            Net.get_object_by_id(
-                area_id,
-                object_id
-            )
-
-        if object and
-            object.type == "NPC" and
-            object.custom_properties and
-            object.custom_properties["Boss Quest"] == "bass" and
-            ezmemory.object_is_hidden_from_player(
-                player_id,
-                area_id,
-                object.id
-            )
-        then
-            local bot_id =
-                eznpcs.get_bot_id_for_placeholder(
-                    area_id,
-                    object.id
-                )
-
-            if bot_id then
-                Net.exclude_actor_for_player(
-                    player_id,
-                    bot_id
-                )
-            end
-        end
-    end
-end
-
 Net:on(
     "player_area_transfer",
     function(event)
@@ -331,11 +235,24 @@ Net:on(
                     area_id
                 )
 
-                apply_bass_visibility(
-                    event.player_id,
-                    area_id
-                )
+                boss_runtime.ensure_boss_npcs(area_id)
+                boss_runtime.apply_visibility(event.player_id, area_id)
+
+                Async.sleep(0.15).and_then(function()
+                    if Net.is_player(event.player_id) and Net.get_player_area(event.player_id) == area_id then
+                        boss_runtime.reveal_first_unseen_boss(event.player_id, area_id)
+                    end
+                end)
             end
+        )
+    end
+)
+
+Net:on(
+    "object_interaction",
+    function(event)
+        boss_runtime.handle_object_interaction(
+            event
         )
     end
 )

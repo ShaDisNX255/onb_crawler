@@ -57,6 +57,7 @@ d4a3031ff664c1ec351902c7dc796b96 com.shadis.navi.adventure.Luigi.basic
 08ec366a2374c067da789b744ac92540 com.silva.navi.zarymura.adventure
 eefece8d390ae4b2828c4017c294194e com.silva&tressa.navi.neozarypvp
 d9714759e68f13b49156780988460798 com.discord.Kimonia-Rules#1667.player.Sil
+c8b43ebed2e9503a59bafb70e2892346 com.scilabs.cossack.player.fortepvp
 
 ............................class CardPackageManager............................
 7d7e288735a71b78449298b11268eb87 com.Dawn.k1rbyat1na.card.EXE6-088-CrackShoot
@@ -252,3 +253,4 @@ d8e8f0bad2387ed840719cd88e49d60e hoov.card.flameline1
 a00a7f75074726e9dca0b6566a2d185f hoov.cards.neohetr1
 1529fbb86e2e86166734451439d9250b hoov.cards.neohetr2
 1fa37031b2041bc1fa5905e3bf0a69f0 hoov.cards.neohetr3
+b55eb9f15a9323532e5537e36ef8cf11 com.alrysc.card.OmegaRocketBeta

@@ -17,6 +17,7 @@ return {
         easy = { low = 0.45, mid = 0.65, high = 0.85, },
         medium = { low = 0.40, mid = 0.60, high = 0.80, },
         hard = { low = 0.35, mid = 0.55, high = 0.75, },
+        boss = { low = 1.0, mid = 1.0, high = 1.0, },
     },
 
     -- ========================================================
@@ -452,7 +453,7 @@ return {
         --
         -- They use the Hard money table.
 
-        Forte = { [1] = reward("boss"), },
+        Forte = { [1] = reward("boss", "bassdg"), },
         Gregar = { [1] = reward("boss"), },
         GregarBeast = { [3] = reward("boss"), },
         Duo = { [1] = reward("boss"), },
@@ -460,7 +461,7 @@ return {
         Colonel = { [3] = reward("boss"), },
         ElementMan = { [1] = reward("boss"), },
         StarMan = { [4] = reward("boss"), },
-        Proto = { [1] = reward("boss"), },
+        Proto = { [1] = reward("boss", "omegarocket"), },
         ShadowMan = { [4] = reward("boss"), },
         HatMan = { [4] = reward("boss"), },
         QuickMan = { [4] = reward("boss"), },

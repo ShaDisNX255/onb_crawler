@@ -494,16 +494,18 @@ local function destroy_active_run()
     )
 end
 
-local function cleanup_active_run_if_empty(ignored_player_id)
-    if not active_run then
-        return
-    end
+local function start_empty_run_grace(ignored_player_id)
+    if not active_run then return end
+    if run_has_players(active_run, ignored_player_id) then return end
+    if active_run.disconnect_grace_remaining then return end
 
-    if run_has_players(active_run, ignored_player_id) then
-        return
-    end
+    active_run.disconnect_grace_remaining = DISCONNECT_GRACE_SECONDS
 
-    destroy_active_run()
+    print(
+        "[dungeon_warps] run empty; preserving it for " ..
+        DISCONNECT_GRACE_SECONDS ..
+        " seconds"
+    )
 end
 
 -- ==============================================================
@@ -828,10 +830,7 @@ end)
 -- ==============================================================
 
 Net:on("player_area_transfer", function(event)
-    -- Moving from one dungeon room to another leaves at least one
-    -- player in active_run.areas. Returning the final player to the
-    -- overworld destroys the shared runtime dungeon.
-    cleanup_active_run_if_empty()
+    start_empty_run_grace()
 end)
 
 -- ==============================================================
@@ -848,27 +847,5 @@ Net:on("player_disconnect", function(event)
         player_id
     )
 
-    -- The disconnecting player can still appear in
-    -- Net.list_players() during this callback.
-    if
-        active_run and
-        not run_has_players(
-            active_run,
-            player_id
-        )
-    then
-        if
-            not active_run.disconnect_grace_remaining
-        then
-            active_run.disconnect_grace_remaining =
-                DISCONNECT_GRACE_SECONDS
-
-            print(
-                "[dungeon_warps] run empty after disconnect; " ..
-                "preserving it for " ..
-                DISCONNECT_GRACE_SECONDS ..
-                " seconds"
-            )
-        end
-    end
+    start_empty_run_grace(player_id)
 end)

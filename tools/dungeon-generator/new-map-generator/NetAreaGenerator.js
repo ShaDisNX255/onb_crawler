@@ -252,7 +252,7 @@ class NetAreaGenerator {
     calculateNewRoomLocation(room, attempts) {
         let parentNode = room.node.parent
         let parentRoom = parentNode.room
-        let radius = 2+(attempts * 0.5)
+        let radius = 2 + Math.min(attempts, 20) * 0.25 + Math.max(0, attempts - 20) * 0.5
         let pos = this.RNG.RandomPositionOnCircumference(radius)
         pos.x = Math.floor(parentRoom.x + pos.x)
         pos.y = Math.floor(parentRoom.y + pos.y)

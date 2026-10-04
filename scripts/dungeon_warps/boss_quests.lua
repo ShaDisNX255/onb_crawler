@@ -1,5 +1,10 @@
 local boss_quests = {}
 
+local scenario_lifecycle =
+    require(
+        "scripts/dungeon_warps/scenario_lifecycle"
+    )
+
 local bugfrag_quests =
     require("scripts/dungeon_warps/bugfrag_quests")
 
@@ -66,14 +71,14 @@ function boss_quests.create_run_state(run_id)
                 boss_areas = {},
 
                 awakened = false,
-                spawn_pending = false,
+                spawns = {},
 
-                object_id = nil,
-                area_id = nil,
-                marker_key = nil,
-
-                defeated_players = {},
-                battling_players = {},
+                lifecycle =
+                    scenario_lifecycle.create(
+                        "alpha",
+                        2,
+                        1
+                    ),
             },
             bugfrag = bugfrag_quests.create_state(),
         },
@@ -150,6 +155,39 @@ local function release_marker(state, marker_key)
         marker.spawned_object_id = nil
         marker.spawned_bot_id = nil
     end
+end
+
+local function remove_runtime_object(
+    area_id,
+    object_id
+)
+    local object =
+        Net.get_object_by_id(
+            area_id,
+            object_id
+        )
+
+    local bot_id =
+        object and
+        object.custom_properties and
+        object.custom_properties[
+            "Runtime Bot ID"
+        ]
+
+    if bot_id and
+        Net.is_bot(bot_id)
+    then
+        pcall(
+            Net.remove_bot,
+            bot_id
+        )
+    end
+
+    pcall(
+        Net.remove_object,
+        area_id,
+        object_id
+    )
 end
 
 local function count_collected_tetra(alpha)
@@ -365,120 +403,266 @@ local function spawn_flavor_npc(state, area_id)
     return true
 end
 
-local function spawn_alpha_in_area(state, area_id)
-    local alpha = state.scenarios.alpha
+local function clear_alpha_flavor_npcs(
+    state
+)
+    local alpha =
+        state.scenarios.alpha
 
-    if alpha.object_id then
-        return true
+    for _, spawn in ipairs(
+        alpha.flavor_npcs
+    ) do
+        remove_runtime_object(
+            spawn.area_id,
+            spawn.placeholder_object_id
+        )
+
+        release_marker(
+            state,
+            spawn.marker_key
+        )
     end
 
-    local marker = get_free_marker(state, area_id)
+    alpha.flavor_npcs = {}
+    alpha.flavor_queue = {}
+end
+
+local function alpha_spawned_in_area(
+    alpha,
+    area_id
+)
+    for _, spawn in ipairs(
+        alpha.spawns
+    ) do
+        if spawn.area_id == area_id then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function remove_alpha_spawn(
+    state,
+    spawn
+)
+    remove_runtime_object(
+        spawn.area_id,
+        spawn.object_id
+    )
+
+    state.object_index[
+        object_key(
+            spawn.area_id,
+            spawn.object_id
+        )
+    ] = nil
+
+    release_marker(
+        state,
+        spawn.marker_key
+    )
+end
+
+local function get_retirable_alpha(
+    alpha
+)
+    for index, spawn in ipairs(
+        alpha.spawns
+    ) do
+        if #Net.list_players(
+            spawn.area_id
+        ) == 0 then
+            return index, spawn
+        end
+    end
+
+    return nil, nil
+end
+
+local function spawn_alpha_in_area(
+    state,
+    area_id,
+    allow_roll
+)
+    local alpha =
+        state.scenarios.alpha
+
+    local life =
+        alpha.lifecycle
+
+    if life.phase ~= "active" or
+        alpha_spawned_in_area(
+            alpha,
+            area_id
+        )
+    then
+        return false
+    end
+
+    local retire_index = nil
+    local retire_spawn = nil
+
+    if #alpha.spawns >=
+        life.active_copy_limit
+    then
+        if not allow_roll then
+            return false
+        end
+
+        retire_index,
+        retire_spawn =
+            get_retirable_alpha(
+                alpha
+            )
+
+        if not retire_spawn then
+            return false
+        end
+    end
+
+    local marker =
+        get_free_marker(
+            state,
+            area_id
+        )
 
     if not marker then
         return false
     end
 
-    local gid = tonumber(
-        Net.get_area_custom_property(
-            area_id,
-            "crawler_alpha_gid"
+    local gid =
+        tonumber(
+            Net.get_area_custom_property(
+                area_id,
+                "crawler_alpha_gid"
+            )
         )
-    )
 
     if not gid then
-        print(
-            "[boss_quests] missing crawler_alpha_gid in " ..
-            tostring(area_id)
-        )
-
         return false
     end
 
-    local ok, object_id = pcall(
-        Net.create_object,
-        area_id,
-        {
-            name = "Alpha",
-            class = "Alpha Boss",
-            visible = true,
+    local ok,
+        object_id =
+        pcall(
+            Net.create_object,
+            area_id,
+            {
+                name = "Alpha",
+                class = "Alpha Boss",
+                visible = true,
 
-            -- Alpha's oversized tile needs a small runtime correction to visually
-            -- center it on the BossMarker while preserving its tested draw ordering.
-            x = marker.x + 0.3,
-            y = marker.y - 1,
-            z = marker.z,
+                x = marker.x + 0.3,
+                y = marker.y - 1,
+                z = marker.z,
 
-            width = 84 / 32,
-            height = 103 / 32,
+                width = 84 / 32,
+                height = 103 / 32,
 
-            data = {
-                type = "tile",
-                gid = gid,
-            },
+                data = {
+                    type = "tile",
+                    gid = gid,
+                },
 
-            custom_properties = {
-                ["Boss Quest"] = "alpha",
-            },
-        }
-    )
+                custom_properties = {
+                    ["Boss Quest"] =
+                        "alpha",
+
+                    ["Boss Enemy"] =
+                        "Proto",
+
+                    ["Boss Rank"] =
+                        "1",
+
+                    ["Boss Reward Tier"] =
+                        "boss",
+                },
+            }
+        )
 
     if not ok then
-        print(
-            "[boss_quests] failed spawning Alpha: " ..
-            tostring(object_id)
-        )
-
         return false
     end
 
-    marker.reserved_by = "alpha_boss"
-    marker.spawned_object_id = object_id
+    marker.reserved_by =
+        "alpha_boss"
 
-    alpha.object_id = object_id
-    alpha.area_id = area_id
-    alpha.marker_key = marker.key
-    alpha.spawn_pending = false
+    marker.spawned_object_id =
+        object_id
+
+    alpha.spawns[
+        #alpha.spawns + 1
+    ] = {
+        area_id = area_id,
+        object_id = object_id,
+        marker_key = marker.key,
+    }
 
     state.object_index[
-        object_key(area_id, object_id)
+        object_key(
+            area_id,
+            object_id
+        )
     ] = {
         kind = "alpha",
     }
 
-    print(
-        "[boss_quests] Alpha awakened in " ..
-        tostring(area_id)
-    )
+    if retire_spawn then
+        table.remove(
+            alpha.spawns,
+            retire_index
+        )
+
+        remove_alpha_spawn(
+            state,
+            retire_spawn
+        )
+
+        print(
+            "[boss_quests] rolled Alpha from " ..
+            tostring(
+                retire_spawn.area_id
+            ) ..
+            " to " ..
+            tostring(area_id)
+        )
+    else
+        print(
+            "[boss_quests] Alpha spawned in " ..
+            tostring(area_id)
+        )
+    end
 
     return true
 end
 
-local function try_spawn_alpha(state, preferred_area_id)
-    local alpha = state.scenarios.alpha
+local function fill_initial_alpha_spawns(
+    state
+)
+    local alpha =
+        state.scenarios.alpha
 
-    if not alpha.awakened or alpha.object_id then
-        return false
-    end
-
-    if preferred_area_id and
-        spawn_alpha_in_area(state, preferred_area_id)
-    then
-        return true
-    end
-
-    for i = #alpha.boss_areas, 1, -1 do
-        local area_id = alpha.boss_areas[i]
-
-        if area_id ~= preferred_area_id and
-            spawn_alpha_in_area(state, area_id)
+    for index =
+        #alpha.boss_areas,
+        1,
+        -1
+    do
+        if #alpha.spawns >=
+            alpha.lifecycle
+                .active_copy_limit
         then
-            return true
+            break
         end
+
+        spawn_alpha_in_area(
+            state,
+            alpha.boss_areas[
+                index
+            ],
+            false
+        )
     end
-
-    alpha.spawn_pending = true
-
-    return false
 end
 
 local function broadcast_tetra_collection(state, code)
@@ -508,19 +692,47 @@ local function broadcast_tetra_collection(state, code)
 end
 
 local function awaken_alpha(state)
-    local alpha = state.scenarios.alpha
+    local alpha =
+        state.scenarios.alpha
 
     if alpha.awakened then
         return
     end
 
     alpha.awakened = true
-    alpha.spawn_pending = true
 
-    -- No more pre-awakening flavor NPCs need to appear.
-    alpha.flavor_queue = {}
+    clear_alpha_flavor_npcs(
+        state
+    )
 
-    try_spawn_alpha(state)
+    scenario_lifecycle.activate(
+        alpha.lifecycle
+    )
+
+    for _, player_id in ipairs(
+        get_online_players()
+    ) do
+        if player_is_in_run(
+            state,
+            player_id
+        ) then
+            scenario_lifecycle.enroll(
+                alpha.lifecycle,
+                get_player_key(
+                    player_id
+                )
+            )
+        end
+    end
+
+    scenario_lifecycle.sync_all(
+        state,
+        alpha.lifecycle
+    )
+
+    fill_initial_alpha_spawns(
+        state
+    )
 end
 
 local function collect_tetra(state, player_id, code)
@@ -690,10 +902,14 @@ local function process_alpha_area(
             #alpha.boss_areas + 1
         ] = area_id
 
-        if alpha.awakened then
-            try_spawn_alpha(
+        if alpha.awakened and
+            alpha.lifecycle.phase ==
+                "active"
+        then
+            spawn_alpha_in_area(
                 state,
-                area_id
+                area_id,
+                true
             )
         end
 
@@ -720,153 +936,108 @@ local function process_alpha_area(
     end
 end
 
-local function apply_alpha_visibility(state, player_id)
-    local alpha = state.scenarios.alpha
+local function prune_alpha_legacy(
+    state
+)
+    local alpha =
+        state.scenarios.alpha
 
-    if not alpha.object_id or
-        not Net.is_player(player_id)
+    if alpha.lifecycle.phase ~=
+        "legacy"
     then
         return
     end
 
-    if Net.get_player_area(player_id) ~= alpha.area_id then
-        return
-    end
+    while #alpha.spawns >
+        alpha.lifecycle
+            .legacy_copy_limit
+    do
+        local index,
+            spawn =
+            get_retirable_alpha(
+                alpha
+            )
 
-    local player_key =
-        get_player_key(player_id)
+        if not spawn then
+            return
+        end
 
-    if alpha.defeated_players[player_key] then
-        pcall(
-            Net.exclude_object_for_player,
-            player_id,
-            alpha.object_id
+        table.remove(
+            alpha.spawns,
+            index
+        )
+
+        remove_alpha_spawn(
+            state,
+            spawn
         )
     end
 end
 
-local function start_alpha_battle(state, player_id)
-    local alpha = state.scenarios.alpha
+local function clear_alpha_spawns(
+    state
+)
+    local alpha =
+        state.scenarios.alpha
 
-    if not alpha.object_id or
-        alpha.battling_players[player_id] or
-        Net.is_player_battling(player_id)
-    then
-        return
+    for _, spawn in ipairs(
+        alpha.spawns
+    ) do
+        remove_alpha_spawn(
+            state,
+            spawn
+        )
     end
 
-    local player_key =
-        get_player_key(player_id)
+    alpha.spawns = {}
+end
 
-    if alpha.defeated_players[player_key] then
-        pcall(
-            Net.exclude_object_for_player,
-            player_id,
-            alpha.object_id
+local function handle_alpha_clear(
+    state,
+    player_key
+)
+    local alpha =
+        state.scenarios.alpha
+
+    local accepted,
+        first_clear,
+        finished =
+        scenario_lifecycle.mark_defeated(
+            alpha.lifecycle,
+            player_key
         )
 
+    if not accepted then
         return
     end
 
-    local alpha_object =
-        Net.get_object_by_id(
-            alpha.area_id,
-            alpha.object_id
+    if finished then
+        clear_alpha_spawns(
+            state
         )
-
-    if not alpha_object then
-        return
+    elseif first_clear then
+        prune_alpha_legacy(
+            state
+        )
     end
 
-    local crawler_config = require(
-        "scripts/ezlibs-scripts/crawler_encounter_config"
+    scenario_lifecycle.sync_all(
+        state,
+        alpha.lifecycle
     )
 
-    local ezencounters = require(
-        "scripts/ezlibs-scripts/ezencounters/main"
+    print(
+        "[boss_quests] Alpha clear phase=" ..
+        tostring(
+            alpha.lifecycle.phase
+        )
     )
 
-    local encounter_info = {
-        name =
-            "CrawlerAlpha_" ..
-            tostring(state.run_id) ..
-            "_" ..
-            tostring(math.random(1000000)),
-
-        path =
-            crawler_config.package_paths.boss,
-
-        enemies = {
-            {
-                name = "Proto",
-                rank = 1,
-            },
-        },
-
-        positions = {
-            { 0, 0, 0, 0, 0, 0 },
-            { 0, 0, 0, 0, 1, 0 },
-            { 0, 0, 0, 0, 0, 0 },
-        },
-
-        _crawler_reward_tier = "hard",
-        _crawler_boss = true,
-
-        results_callback =
-            function(
-                result_player_id,
-                _,
-                stats
-            )
-                alpha.battling_players[
-                    result_player_id
-                ] = nil
-
-                if tonumber(stats.reason) ~= 1 then
-                    return
-                end
-
-                if active_state ~= state then
-                    return
-                end
-
-                local result_key =
-                    get_player_key(
-                        result_player_id
-                    )
-
-                alpha.defeated_players[
-                    result_key
-                ] = true
-
-                if alpha.object_id then
-                    pcall(
-                        Net.exclude_object_for_player,
-                        result_player_id,
-                        alpha.object_id
-                    )
-                end
-
-                print(
-                    "[boss_quests] player defeated Alpha: " ..
-                    tostring(result_player_id)
-                )
-            end,
-    }
-
-    alpha.battling_players[player_id] = true
-
-    async(function()
-        await(
-            ezencounters.begin_encounter(
-                player_id,
-                encounter_info,
-                alpha_object
-            )
+    if first_clear then
+        print(
+            "[boss_quests] Alpha scenario slot released"
         )
-
-        alpha.battling_players[player_id] = nil
-    end)
+    end
 end
 
 function boss_quests.register_area(state, area_id, depth)
@@ -883,6 +1054,11 @@ function boss_quests.register_area(state, area_id, depth)
         depth = depth,
         sequence = state.area_sequence,
     }
+
+    scenario_lifecycle.sync_area(
+        state.scenarios.alpha.lifecycle,
+        area_id
+    )
 
     local objects =
         Net.list_objects(area_id)
@@ -1018,42 +1194,133 @@ Net:on("object_interaction", function(event)
 
         return
     end
-
-    if entry.kind == "alpha" then
-        start_alpha_battle(
-            state,
-            event.player_id
-        )
-    end
 end)
 
-Net:on("tick", function(event)
-    if active_state then
-        bugfrag_quests.tick(
-            active_state,
-            event.delta_time
-        )
-    end
-end)
+local function process_boss_clear_signals(
+    state
+)
+    for area_id in pairs(
+        state.areas
+    ) do
+        local raw =
+            tostring(
+                Net.get_area_custom_property(
+                    area_id,
+                    "crawler_boss_clear_signals"
+                ) or ""
+            )
 
-Net:on("player_area_transfer", function(event)
-    Async.sleep(0.05).and_then(function()
-        if active_state and
-            Net.is_player(event.player_id)
-        then
-            apply_alpha_visibility(
-                active_state,
-                event.player_id
+        if raw ~= "" then
+            for token in raw:gmatch(
+                "[^,]+"
+            ) do
+                local scenario,
+                    player_key =
+                    token:match(
+                        "^([^:]+):(.+)$"
+                    )
+
+                if scenario == "alpha" then
+                    handle_alpha_clear(
+                        state,
+                        player_key
+                    )
+                elseif scenario == "bass" then
+                    bugfrag_quests.handle_boss_clear(
+                        state,
+                        player_key
+                    )
+                end
+            end
+
+            Net.set_area_custom_property(
+                area_id,
+                "crawler_boss_clear_signals",
+                ""
             )
         end
-    end)
+    end
+end
+
+Net:on("tick", function(event)
+    if not active_state then
+        return
+    end
+
+    active_state.boss_poll_time =
+        (active_state.boss_poll_time or 0) +
+        (tonumber(
+            event.delta_time
+        ) or 0)
+
+    if active_state.boss_poll_time >=
+        0.2
+    then
+        active_state.boss_poll_time = 0
+
+        process_boss_clear_signals(
+            active_state
+        )
+
+        prune_alpha_legacy(
+            active_state
+        )
+    end
+
+    bugfrag_quests.tick(
+        active_state,
+        event.delta_time
+    )
 end)
 
-Net:on("player_disconnect", function(event)
-    if active_state then
-        active_state.scenarios.alpha
-            .battling_players[event.player_id] = nil
+local function enroll_active_scenarios(
+    player_id
+)
+    if not active_state or
+        not Net.is_player(player_id) or
+        not player_is_in_run(
+            active_state,
+            player_id
+        )
+    then
+        return
     end
-end)
+
+    local player_key =
+        get_player_key(
+            player_id
+        )
+
+    local alpha =
+        active_state.scenarios.alpha
+
+    if scenario_lifecycle.enroll(
+        alpha.lifecycle,
+        player_key
+    ) then
+        scenario_lifecycle.sync_all(
+            active_state,
+            alpha.lifecycle
+        )
+    end
+
+    bugfrag_quests.enroll_player(
+        active_state,
+        player_key
+    )
+end
+
+Net:on(
+    "player_area_transfer",
+    function(event)
+        Async.sleep(0.05).and_then(
+            function()
+                enroll_active_scenarios(
+                    event.player_id
+                )
+            end
+        )
+    end
+)
 
 return boss_quests

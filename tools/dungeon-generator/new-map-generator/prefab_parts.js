@@ -199,17 +199,15 @@ let parts = [
         ],
     },
     {
-        name: '3x3 with ground_feature',
-        width: 3,
+        name: '4x3 with ground_feature',
+        width: 4,
         length: 3,
         height: 1,
-        matrix: [
-            [
-                [2, 2, 2],
-                [2, 2, 2],
-                [2, 2, 2],
-            ],
-        ],
+        matrix: [[
+            [2, 2, 2, 2],
+            [2, 2, 2, 2],
+            [2, 2, 2, 2],
+        ]],
         ground_features: [
             {
                 x: 1,
@@ -220,30 +218,29 @@ let parts = [
         ],
         wall_features: [],
         male_connectors: [
-            { x: -1, y: 1, z: 0, },
-            { x: 3, y: 1, z: 0, },
-            { x: 1, y: -1, z: 0, },
-            { x: 1, y: 3, z: 0, },
+            { x: -1, y: 1, z: 0 },
+            { x: 4, y: 1, z: 0 },
+            { x: 2, y: -1, z: 0 },
+            { x: 2, y: 3, z: 0 },
         ],
         female_connectors: [
-            { x: 0, y: 1, z: 0, },
-            { x: 2, y: 1, z: 0, },
-            { x: 1, y: 0, z: 0, },
-            { x: 1, y: 2, z: 0, },
+            { x: 0, y: 1, z: 0 },
+            { x: 3, y: 1, z: 0 },
+            { x: 2, y: 0, z: 0 },
+            { x: 2, y: 2, z: 0 },
         ],
     },
     {
-        name: '3x3 with ground_feature alt',
+        name: '3x4 with ground_feature alt',
         width: 3,
-        length: 3,
+        length: 4,
         height: 1,
-        matrix: [
-            [
-                [3, 3, 3],
-                [3, 3, 3],
-                [3, 3, 3],
-            ],
-        ],
+        matrix: [[
+            [3, 3, 3],
+            [3, 3, 3],
+            [3, 3, 3],
+            [3, 3, 3],
+        ]],
         ground_features: [
             {
                 x: 1,
@@ -254,30 +251,28 @@ let parts = [
         ],
         wall_features: [],
         male_connectors: [
-            { x: -1, y: 1, z: 0, },
-            { x: 3, y: 1, z: 0, },
-            { x: 1, y: -1, z: 0, },
-            { x: 1, y: 3, z: 0, },
+            { x: -1, y: 2, z: 0 },
+            { x: 3, y: 2, z: 0 },
+            { x: 1, y: -1, z: 0 },
+            { x: 1, y: 4, z: 0 },
         ],
         female_connectors: [
-            { x: 0, y: 1, z: 0, },
-            { x: 2, y: 1, z: 0, },
-            { x: 1, y: 0, z: 0, },
-            { x: 1, y: 2, z: 0, },
+            { x: 0, y: 2, z: 0 },
+            { x: 2, y: 2, z: 0 },
+            { x: 1, y: 0, z: 0 },
+            { x: 1, y: 3, z: 0 },
         ],
     },
     {
-        name: '5x3 with ground_features',
-        width: 3,
+        name: '6x3 with ground_features',
+        width: 6,
         length: 3,
         height: 1,
-        matrix: [
-            [
-                [2, 2, 2, 2, 2],
-                [2, 2, 2, 2, 2],
-                [2, 2, 2, 2, 2],
-            ],
-        ],
+        matrix: [[
+            [2, 2, 2, 2, 2, 2],
+            [2, 2, 2, 2, 2, 2],
+            [2, 2, 2, 2, 2, 2],
+        ]],
         ground_features: [
             {
                 x: 1,
@@ -286,7 +281,7 @@ let parts = [
                 properties: {},
             },
             {
-                x: 3,
+                x: 4,
                 y: 1,
                 z: 0,
                 properties: {},
@@ -294,21 +289,21 @@ let parts = [
         ],
         wall_features: [],
         male_connectors: [
-            { x: -1, y: 1, z: 0, },
-            { x: 5, y: 1, z: 0, },
-            { x: 2, y: -1, z: 0, },
-            { x: 2, y: 3, z: 0, },
+            { x: -1, y: 1, z: 0 },
+            { x: 6, y: 1, z: 0 },
+            { x: 3, y: -1, z: 0 },
+            { x: 3, y: 3, z: 0 },
         ],
         female_connectors: [
-            { x: 0, y: 1, z: 0, },
-            { x: 4, y: 1, z: 0, },
-            { x: 2, y: 0, z: 0, },
-            { x: 2, y: 2, z: 0, },
+            { x: 0, y: 1, z: 0 },
+            { x: 5, y: 1, z: 0 },
+            { x: 3, y: 0, z: 0 },
+            { x: 3, y: 2, z: 0 },
         ],
     },
     {
         name: '3x3 with wall_feature_left',
-        width: 3,
+        width: 4,
         length: 3,
         height: 1,
         matrix: [
@@ -335,20 +330,20 @@ let parts = [
             },
         ],
         male_connectors: [
-            { x: 3, y: 1, z: 0, },
-            { x: 1, y: -1, z: 0, },
-            { x: 1, y: 3, z: 0, },
+            { x: 4, y: 1, z: 0 },
+            { x: 2, y: -1, z: 0 },
+            { x: 2, y: 3, z: 0 },
         ],
         female_connectors: [
-            { x: 2, y: 1, z: 0, },
-            { x: 1, y: 0, z: 0, },
-            { x: 1, y: 2, z: 0, },
+            { x: 3, y: 1, z: 0 },
+            { x: 2, y: 0, z: 0 },
+            { x: 2, y: 2, z: 0 },
         ],
     },
     {
         name: '3x3 with wall_feature_right',
         width: 3,
-        length: 3,
+        length: 4,
         height: 1,
         matrix: [
             [
@@ -374,14 +369,14 @@ let parts = [
             },
         ],
         male_connectors: [
-            { x: 3, y: 1, z: 0, },
-            { x: -1, y: 1, z: 0, },
-            { x: 1, y: 3, z: 0, },
+            { x: 3, y: 2, z: 0 },
+            { x: -1, y: 2, z: 0 },
+            { x: 1, y: 4, z: 0 },
         ],
         female_connectors: [
-            { x: 2, y: 1, z: 0, },
-            { x: 0, y: 1, z: 0, },
-            { x: 1, y: 2, z: 0, },
+            { x: 2, y: 2, z: 0 },
+            { x: 0, y: 2, z: 0 },
+            { x: 1, y: 3, z: 0 },
         ],
     },
 ]
