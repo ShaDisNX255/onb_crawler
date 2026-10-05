@@ -211,6 +211,15 @@ local function scan_dungeon_area(
     )
 end
 
+local function try_boss_reveal(player_id, area_id, attempts)
+    if attempts <= 0 or not Net.is_player(player_id) or Net.get_player_area(player_id) ~= area_id then return end
+    if boss_runtime.reveal_first_unseen_boss(player_id, area_id) then return end
+
+    Async.sleep(0.2).and_then(function()
+        try_boss_reveal(player_id, area_id, attempts - 1)
+    end)
+end
+
 Net:on(
     "player_area_transfer",
     function(event)
@@ -238,10 +247,8 @@ Net:on(
                 boss_runtime.ensure_boss_npcs(area_id)
                 boss_runtime.apply_visibility(event.player_id, area_id)
 
-                Async.sleep(0.15).and_then(function()
-                    if Net.is_player(event.player_id) and Net.get_player_area(event.player_id) == area_id then
-                        boss_runtime.reveal_first_unseen_boss(event.player_id, area_id)
-                    end
+                Async.sleep(0.25).and_then(function()
+                    try_boss_reveal(event.player_id, area_id, 5)
                 end)
             end
         )

@@ -162,16 +162,25 @@ local function record_clear(
     )
 end
 
-local function show_boss_intro(player_id, scenario)
+local function boss_message(npc, player_id, object, text)
+    if npc then
+        local mugshot = eznpcs.get_dialogue_mugshot(npc, player_id, object)
+        return Async.message_player(player_id, text, mugshot.texture_path, mugshot.animation_path)
+    end
+
+    return Async.message_player(player_id, text)
+end
+
+local function show_boss_intro(player_id, scenario, npc, object)
     return async(function()
         if scenario == "alpha" then
             Net.shake_player_camera(player_id, 3.0, 1.5)
             await(Async.message_player(player_id, "Grraaahhh...!!"))
         elseif scenario == "bass" then
-            await(Async.message_player(player_id, "...Grrrrr..."))
-            await(Async.message_player(player_id, "I have awakened..."))
-            await(Async.message_player(player_id, "I seek only power. I have no name... I exist only to battle."))
-            await(Async.message_player(player_id, "These bugs have given me power... I will test it on you."))
+            await(boss_message(npc, player_id, object, "...Grrrrr..."))
+            await(boss_message(npc, player_id, object, "I have awakened..."))
+            await(boss_message(npc, player_id, object, "I seek only power. I have no name... I exist only to battle."))
+            await(boss_message(npc, player_id, object, "These bugs have given me power... I will test it on you."))
         end
     end)
 end
@@ -213,7 +222,7 @@ local function start_boss_battle(
 
         battling[player_id] = scenario
 
-        await(show_boss_intro(player_id, scenario))
+        await(show_boss_intro(player_id, scenario, npc, object))
 
         local stats =
             await(
@@ -433,6 +442,15 @@ function M.ensure_boss_npcs(
     M.tag_runtime_npc_bots(
         area_id
     )
+    local bass_object_id = Net.get_area_custom_property(area_id, "crawler_boss_bass_object_id")
+
+    if bass_object_id and bass_object_id ~= "" then
+        local bot_id = eznpcs.get_bot_id_for_placeholder(area_id, bass_object_id)
+
+        if bot_id and Net.is_bot(bot_id) then
+            Net.set_area_custom_property(area_id, "crawler_boss_bass_bot_id", bot_id)
+        end
+    end
 end
 
 function M.apply_visibility(
@@ -521,106 +539,83 @@ local function restore_camera(
     )
 end
 
-function M.reveal_first_unseen_boss(
-    player_id,
-    area_id
-)
-    for _, object_id in ipairs(
-        Net.list_objects(area_id)
-    ) do
-        local object =
-            Net.get_object_by_id(
-                area_id,
-                object_id
-            )
+function M.reveal_first_unseen_boss(player_id, area_id)
+    local scenario, x, y, z
 
-        local props =
-            object and
-            object.custom_properties
+    if Net.get_area_custom_property(area_id, "crawler_boss_bass_present") == "true" then
+        scenario = "bass"
+        x = tonumber(Net.get_area_custom_property(area_id, "crawler_boss_bass_x"))
+        y = tonumber(Net.get_area_custom_property(area_id, "crawler_boss_bass_y"))
+        z = tonumber(Net.get_area_custom_property(area_id, "crawler_boss_bass_z"))
 
-        local scenario =
-            props and
-            props["Boss Quest"]
+        if x and y and z and can_participate(player_id, area_id, scenario) then
+            local key = get_key(player_id, area_id, scenario)
 
-        if scenario and
-            props["Boss Enemy"] and
-            can_participate(
-                player_id,
-                area_id,
-                scenario
-            )
-        then
-            local key =
-                get_key(
-                    player_id,
-                    area_id,
-                    scenario
-                )
-
-            if key and
-                not revealed[key]
-            then
-                print("[crawler_boss_runtime] revealing " .. scenario .. " to " .. tostring(player_id))
+            if key and not revealed[key] then
+                print("[crawler_boss_runtime] revealing bass to " .. tostring(player_id))
                 revealed[key] = true
 
-                Net.lock_player_input(
-                    player_id
-                )
+                Net.lock_player_input(player_id)
+                Net.slide_player_camera(player_id, x, y, z, 0.75)
 
-                Net.slide_player_camera(
-                    player_id,
-                    object.x,
-                    object.y,
-                    object.z,
-                    0.75
-                )
+                Async.sleep(2.25).and_then(function()
+                    if not Net.is_player(player_id) then return end
 
-                Async.sleep(2.25).and_then(
-                    function()
-                        if not Net.is_player(
-                            player_id
-                        ) then
-                            return
-                        end
-
-                        if Net.get_player_area(
-                            player_id
-                        ) ~= area_id
-                        then
-                            restore_camera(
-                                player_id
-                            )
-
-                            return
-                        end
-
-                        local pos =
-                            Net.get_player_position(
-                                player_id
-                            )
-
-                        Net.slide_player_camera(
-                            player_id,
-                            pos.x,
-                            pos.y,
-                            pos.z,
-                            0.75
-                        )
-
-                        Async.sleep(0.75).and_then(
-                            function()
-                                restore_camera(
-                                    player_id
-                                )
-                            end
-                        )
+                    if Net.get_player_area(player_id) ~= area_id then
+                        restore_camera(player_id)
+                        return
                     end
-                )
 
-                return
+                    local pos = Net.get_player_position(player_id)
+                    Net.slide_player_camera(player_id, pos.x, pos.y, pos.z, 0.75)
+
+                    Async.sleep(0.75).and_then(function()
+                        restore_camera(player_id)
+                    end)
+                end)
+
+                return true
             end
         end
     end
+
+    for _, object_id in ipairs(Net.list_objects(area_id)) do
+        local object = Net.get_object_by_id(area_id, object_id)
+        local props = object and object.custom_properties
+        scenario = props and props["Boss Quest"]
+
+        if scenario and props["Boss Enemy"] and can_participate(player_id, area_id, scenario) then
+            local key = get_key(player_id, area_id, scenario)
+
+            if key and not revealed[key] then
+                print("[crawler_boss_runtime] revealing " .. scenario .. " to " .. tostring(player_id))
+                revealed[key] = true
+
+                Net.lock_player_input(player_id)
+                Net.slide_player_camera(player_id, object.x, object.y, object.z, 0.75)
+
+                Async.sleep(2.25).and_then(function()
+                    if not Net.is_player(player_id) then return end
+
+                    if Net.get_player_area(player_id) ~= area_id then
+                        restore_camera(player_id)
+                        return
+                    end
+
+                    local pos = Net.get_player_position(player_id)
+                    Net.slide_player_camera(player_id, pos.x, pos.y, pos.z, 0.75)
+
+                    Async.sleep(0.75).and_then(function()
+                        restore_camera(player_id)
+                    end)
+                end)
+
+                return true
+            end
+        end
+    end
+
+    return false
 end
 
 return M

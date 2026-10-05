@@ -85,12 +85,31 @@ function M.create_state()
 end
 
 local function remove_spawn(state, spawn)
-    local object = Net.get_object_by_id(spawn.area_id, spawn.object_id)
-    local bot_id = object and object.custom_properties and object.custom_properties["Runtime Bot ID"]
-    if bot_id and Net.is_bot(bot_id) then pcall(Net.remove_bot, bot_id) end
+    local bot_id
+
+    if spawn.scenario == "bass" then
+        bot_id = Net.get_area_custom_property(spawn.area_id, "crawler_boss_bass_bot_id")
+    else
+        local object = Net.get_object_by_id(spawn.area_id, spawn.object_id)
+        bot_id = object and object.custom_properties and object.custom_properties["Runtime Bot ID"]
+    end
+
+    if bot_id and bot_id ~= "" and Net.is_bot(bot_id) then
+        pcall(Net.remove_bot, bot_id)
+    end
+
     pcall(Net.remove_object, spawn.area_id, spawn.object_id)
     state.object_index[key(spawn.area_id, spawn.object_id)] = nil
     release_marker(state, spawn.marker_key)
+
+    if spawn.scenario == "bass" then
+        Net.set_area_custom_property(spawn.area_id, "crawler_boss_bass_present", "")
+        Net.set_area_custom_property(spawn.area_id, "crawler_boss_bass_object_id", "")
+        Net.set_area_custom_property(spawn.area_id, "crawler_boss_bass_bot_id", "")
+        Net.set_area_custom_property(spawn.area_id, "crawler_boss_bass_x", "")
+        Net.set_area_custom_property(spawn.area_id, "crawler_boss_bass_y", "")
+        Net.set_area_custom_property(spawn.area_id, "crawler_boss_bass_z", "")
+    end
 end
 
 local function spawn_bugfrag(state, area_id)
@@ -179,7 +198,8 @@ local function spawn_bass(state, area_id, allow_roll)
         data = { type = "point" },
         custom_properties = {
             ["Asset Name"] = "bass",
-            ["Direction"] = marker.direction or "Down",
+            ["Mugshot"] = "bass",
+            ["Direction"] = marker.direction or "Down Right",
             ["Dialogue Type"] = "first",
             ["Event Name"] = "dungeon_crawler_boss",
             ["Boss Quest"] = "bass",
@@ -192,7 +212,19 @@ local function spawn_bass(state, area_id, allow_roll)
 
     marker.reserved_by = "bass_boss"
     marker.spawned_object_id = object_id
-    bass.spawns[#bass.spawns + 1] = { area_id = area_id, object_id = object_id, marker_key = marker.key }
+
+    Net.set_area_custom_property(area_id, "crawler_boss_bass_present", "true")
+    Net.set_area_custom_property(area_id, "crawler_boss_bass_object_id", tostring(object_id))
+    Net.set_area_custom_property(area_id, "crawler_boss_bass_x", tostring(marker.x))
+    Net.set_area_custom_property(area_id, "crawler_boss_bass_y", tostring(marker.y))
+    Net.set_area_custom_property(area_id, "crawler_boss_bass_z", tostring(marker.z))
+
+    bass.spawns[#bass.spawns + 1] = {
+        area_id = area_id,
+        object_id = object_id,
+        marker_key = marker.key,
+        scenario = "bass",
+    }
 
     if retire_spawn then
         table.remove(bass.spawns, retire_index)
