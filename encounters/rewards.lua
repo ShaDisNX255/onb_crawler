@@ -162,7 +162,11 @@ return {
         -- SHELLKY
         -- ====================================================
 
-        Shellky = { [1] = reward("easy"), [2] = reward("medium"), [3] = reward("hard"), },
+        Shellky = {
+            [1] = reward("easy", "doubleneedle"),
+            [2] = reward("medium", "tripleneedle"),
+            [3] = reward("hard", "tetraneedle"),
+        },
 
         -- ====================================================
         -- CIRKILLER
@@ -276,9 +280,9 @@ return {
         -- KILLPLANT FAMILY
         -- ====================================================
 
-        KillPlant = { [1] = reward("easy"), },
-        KillWeed = { [1] = reward("medium"), },
-        KillFlower = { [1] = reward("hard"), },
+        KillPlant = { [1] = reward("easy", "forestbomb1"), },
+        KillWeed = { [1] = reward("medium", "forestbomb2"), },
+        KillFlower = { [1] = reward("hard", "forestbomb3"), },
 
         -- ====================================================
         -- SPIKEY FAMILY
